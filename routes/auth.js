@@ -9,6 +9,7 @@ const SCOPES = [
 ];
 
 export default function createAuthRouter({ pool }) {
+    // #region Create and configure auth router
     const router = express.Router();
     const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
@@ -16,33 +17,19 @@ export default function createAuthRouter({ pool }) {
         process.env.GOOGLE_REDIRECT_URI
     );
 
-    /**
-     * Start the Google OAuth flow.
-     *
-     * @route GET /auth/google
-     * @summary Redirects the user to Google's OAuth consent screen
-     * @returns {void} 302 - Redirects to Google
-     */
     router.get("/google", (req, res) => {
+        // #region Begin Google OAuth authorization redirect
         const url = oauth2Client.generateAuthUrl({
             access_type: "offline",
             prompt: "consent",
             scope: SCOPES,
         });
         res.redirect(url);
+        // #endregion
     });
 
-    /**
-     * Handle Google's OAuth callback.
-     *
-     * @route GET /auth/google/callback
-     * @summary Exchanges auth code for tokens and stores the user session
-     * @param {string} code.query.required - Authorization code from Google
-     * @returns {void} 302 - Redirects to the app
-     * @returns {Error} 400 - Missing code
-     * @returns {Error} 500 - Unexpected server error
-     */
     router.get("/google/callback", async (req, res, next) => {
+        // #region Handle Google OAuth callback and session setup
         // #region Google redirects back with code
         const code = req.query.code;
         if (!code) return res.status(400).send("Missing code");
@@ -101,7 +88,9 @@ export default function createAuthRouter({ pool }) {
             next(err);
         }
         // #endregion
+        // #endregion
     });
 
     return router;
+    // #endregion
 }

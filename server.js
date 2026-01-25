@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import pg from "pg";
 import path from "path";
 import { fileURLToPath } from "url";
-import createAuthRouter from "./routes/auth";
+import createAuthRouter from "./routes/auth.js";
 
 const app = express();
 
@@ -34,15 +34,6 @@ app.use(express.static(path.join(__dirname, "dist")));
 // Mount the auth router, passing the database pool
 app.use("/auth", createAuthRouter({ pool }));
 
-/**
- * Get recent email metadata for the current user.
- *
- * @route GET /api/inbox
- * @summary Retrieves the most recent Gmail messages for the session user
- * @returns {object} 200 - Gmail messages list payload
- * @returns {Error} 401 - Unauthorized
- * @returns {Error} 500 - Unexpected server error
- */
 app.get("/api/inbox", async (req, res) => {
     // #region Route to receive all emails
     const userId = req.session.userId;
@@ -53,24 +44,14 @@ app.get("/api/inbox", async (req, res) => {
     // #endregion
 });
 
-/**
- * Serve the SPA entry point.
- *
- * @route GET /*
- * @summary Sends the app HTML for client-side routing
- * @returns {file} 200 - The main HTML file
- */
+app.get("/hello", (req, res) => {
+    res.status(200).send("hello world");
+});
+
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-/**
- * Build an authenticated Gmail client for a user.
- *
- * @param {number} userId - Database user ID tied to stored Google tokens
- * @returns {Promise<object>} Authenticated Gmail API client
- * @throws {Error} When no refresh token is stored for the user
- */
 async function getGmailClientForUser(userId) {
     // #region Get Gmail Client
     const { rows } = await pool.query(

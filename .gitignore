@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+docs/jsdoc
 
 # Editor directories and files
 .vscode/*
@@ -24,3 +25,6 @@ dist-ssr
 *.sw?
 
 .env
+
+*storybook.log
+storybook-static

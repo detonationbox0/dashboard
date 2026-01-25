@@ -1,0 +1,40 @@
+meta {
+  name: /auth/google
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8080/auth/google
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 5
+}
+
+docs {
+  ## GET /auth/google
+  
+  Starts the Google OAuth 2.0 login flow.
+  
+  When called, this endpoint redirects the client to Google’s consent screen. It does not return JSON. This is intended for browsers (or clients that can follow redirects and complete the interactive consent step).
+  
+  **Behavior**
+  - Response: `302 Found`
+  - `Location`: Google OAuth consent URL
+  
+  **Notes**
+  - If you test with API clients (Bruno, Postman), disable “Follow Redirects” to see the 302 response.
+  - The user must complete the Google consent flow in a browser.
+  - The OAuth callback must be configured in Google Cloud and match `GOOGLE_REDIRECT_URI`.
+  
+  **Example**
+  ```http
+  GET http://localhost:8080/auth/google
+  ```
+}

@@ -1,0 +1,43 @@
+meta {
+  name: /auth/google/callback
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8080/auth/google/callback?code=GOOGLE_REDIRECT_CODE
+  body: none
+  auth: none
+}
+
+params:query {
+  code: GOOGLE_REDIRECT_CODE
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 5
+}
+
+docs {
+  ## GET /auth/google/callback
+  
+  Handles the OAuth callback from Google. Exchanges the authorization code for tokens,
+  stores the user session, and redirects back to the app.
+  
+  **Behavior**
+  - Response: `302 Found` on success (redirects to `/`)
+  - Response: `400 Bad Request` if `code` is missing
+  
+  **Notes**
+  - This endpoint is meant to be called by Google after user consent.
+  - For manual testing, supply a valid `code` query parameter.
+  - If you test with API clients (Bruno, Postman), disable "Follow Redirects" to see the 302 response.
+  
+  **Example**
+  ```http
+  GET http://localhost:8080/auth/google/callback?code=YOUR_CODE
+  ```
+}

@@ -1,10 +1,37 @@
 import { useState, useEffect, useRef } from 'react'
 
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+  const platform = navigator.platform;
+
+  // Browser detection
+  let browser = "Unknown Browser";
+  if (ua.includes("Edg")) browser = "Microsoft Edge";
+  else if (ua.includes("Chrome")) browser = "Chrome";
+  else if (ua.includes("Firefox")) browser = "Firefox";
+  else if (ua.includes("Safari")) browser = "Safari";
+
+  // OS detection
+  let os = "Unknown OS";
+  if (platform.startsWith("Win")) os = "Windows";
+  else if (platform.startsWith("Mac")) os = "macOS";
+  else if (/Android/i.test(ua)) os = "Android";
+  else if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
+  else if (/Linux/i.test(platform)) os = "Linux";
+
+  // Device type
+  let deviceType = "Desktop";
+  if (/Mobi|Android/i.test(ua)) deviceType = "Mobile";
+  if (/iPad|Tablet/i.test(ua)) deviceType = "Tablet";
+
+  return `${browser} on ${os} (${deviceType})`;
+}
+
 function App() {
 
   const [isConnected, setIsConnected] = useState(false);
   const [command, setCommand] = useState(null);
-  const [deviceInfo, setDeviceInfo] = useState("");
+  const [deviceInfo] = useState(() => getDeviceInfo());
   const [inboxJson, setInboxJson] = useState("");
 
   const prevButtons = useRef([]);
@@ -15,38 +42,10 @@ function App() {
     if (elem.requestFullscreen) elem.requestFullscreen();
   };
 
-  function getDeviceInfo() {
-    const ua = navigator.userAgent;
-    const platform = navigator.platform;
-
-    // Browser detection
-    let browser = "Unknown Browser";
-    if (ua.includes("Edg")) browser = "Microsoft Edge";
-    else if (ua.includes("Chrome")) browser = "Chrome";
-    else if (ua.includes("Firefox")) browser = "Firefox";
-    else if (ua.includes("Safari")) browser = "Safari";
-
-    // OS detection
-    let os = "Unknown OS";
-    if (platform.startsWith("Win")) os = "Windows";
-    else if (platform.startsWith("Mac")) os = "macOS";
-    else if (/Android/i.test(ua)) os = "Android";
-    else if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
-    else if (/Linux/i.test(platform)) os = "Linux";
-
-    // Device type
-    let deviceType = "Desktop";
-    if (/Mobi|Android/i.test(ua)) deviceType = "Mobile";
-    if (/iPad|Tablet/i.test(ua)) deviceType = "Tablet";
-
-    return `${browser} on ${os} (${deviceType})`;
-  }
-
 
 
   useEffect(() => {
 
-    setDeviceInfo(getDeviceInfo());
     const handleConnect = (e) => {
       console.log("Gamepad connected:", e.gamepad);
       setIsConnected(true);
@@ -137,7 +136,3 @@ function App() {
 }
 
 export default App
-
-
-
-
