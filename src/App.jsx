@@ -5,6 +5,7 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [command, setCommand] = useState(null);
   const [deviceInfo, setDeviceInfo] = useState("");
+  const [inboxJson, setInboxJson] = useState("");
 
   const prevButtons = useRef([]);
   const prevAxes = useRef([]);
@@ -105,9 +106,24 @@ function App() {
     };
   }, []);
 
+
+  const loadInbox = async () => {
+    try {
+      const response = await fetch("/api/inbox");
+      const text = await response.text();
+      setInboxJson(text);
+    } catch (error) {
+      console.error("Error fetching inbox:", error);
+    }
+  }
+
   return (
     <>
       <h1>Dashboard Proof of Concept</h1>
+
+      <a href="/auth/google">Connect Gmail</a>
+      <button onClick={loadInbox}>Load Inbox</button>
+      <pre>{inboxJson}</pre>
 
       <button onClick={goFullscreen}>
         Full Screen
