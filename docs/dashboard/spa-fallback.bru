@@ -1,0 +1,35 @@
+meta {
+  name: SPA Fallback
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:8080/
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  ## GET /.*
+  
+  Serves the single-page app entry point for any unmatched route.
+  
+  **Behavior**
+  - Response: `200 OK`
+  - Body: `dist/index.html` content
+  
+  **Notes**
+  - This is a catch-all route defined after API routes to enable client-side routing.
+  - The example uses `/`, but any unknown path returns the same HTML.
+  
+  **Example**
+  ```http
+  GET http://localhost:8080/
+  ```
+}

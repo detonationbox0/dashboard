@@ -12,3 +12,24 @@ get {
 auth {
   type: none
 }
+
+docs {
+  ## GET /api/inbox
+  
+  Returns the most recent Gmail messages for the authenticated user session.
+  Uses the stored Google refresh token to query Gmail.
+  
+  **Behavior**
+  - Response: `200 OK` with Gmail API list payload (JSON)
+  - Response: `401 Unauthorized` if no session userId is present
+  - Response: `500 Internal Server Error` if token lookup or Gmail request fails
+  
+  **Notes**
+  - Requires a valid session set by `/auth/google/callback`.
+  - Uses `maxResults: 10` when listing messages.
+  
+  **Example**
+  ```http
+  GET http://localhost:8080/api/inbox
+  ```
+}
