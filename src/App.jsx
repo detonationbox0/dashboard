@@ -37,7 +37,9 @@ function App() {
   const [inboxError, setInboxError] = useState("");
   const [isInboxLoading, setIsInboxLoading] = useState(false);
   const [selectedBoxIndex, setSelectedBoxIndex] = useState(0);
+  const [diagnostics, setDiagnostics] = useState(null);
   const messagesCountRef = useRef(0);
+  const lastDiagUpdateRef = useRef(0);
 
   const prevButtons = useRef([]);
   const prevAxes = useRef([]);
@@ -81,6 +83,17 @@ function App() {
         }
         if (prevAxes.current.length === 0) {
           prevAxes.current = [...gp.axes];
+        }
+
+        const now = performance.now();
+        if (now - lastDiagUpdateRef.current > 200) {
+          setDiagnostics({
+            id: gp.id,
+            mapping: gp.mapping || "unknown",
+            buttons: gp.buttons.map(b => b.value ?? (b.pressed ? 1 : 0)),
+            axes: [...gp.axes],
+          });
+          lastDiagUpdateRef.current = now;
         }
 
         gp.buttons.forEach((btn, index) => {
@@ -178,6 +191,19 @@ function App() {
       <p>The controller is: <b>{isConnected ? "Connected" : "Not Connected"}</b></p>
       <p>Current action: <b>{command ? command : "None"}</b></p>
       <p>Current Device: <b>{deviceInfo}</b></p>
+      <details>
+        <summary>Gamepad Diagnostics</summary>
+        {diagnostics ? (
+          <section>
+            <p>Mapping: <b>{diagnostics.mapping}</b></p>
+            <p>ID: <b>{diagnostics.id}</b></p>
+            <p>Buttons: <b>[{diagnostics.buttons.map(v => v.toFixed(2)).join(", ")}]</b></p>
+            <p>Axes: <b>[{diagnostics.axes.map(v => v.toFixed(2)).join(", ")}]</b></p>
+          </section>
+        ) : (
+          <p>No gamepad data yet.</p>
+        )}
+      </details>
     </>
   )
 }
