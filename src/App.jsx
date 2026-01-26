@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Message from './Message.jsx'
 
 function getDeviceInfo() {
   const ua = navigator.userAgent;
@@ -32,7 +33,7 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [command, setCommand] = useState(null);
   const [deviceInfo] = useState(() => getDeviceInfo());
-  const [inboxJson, setInboxJson] = useState("");
+  const [messages, setMessages] = useState([]);
 
   const prevButtons = useRef([]);
   const prevAxes = useRef([]);
@@ -109,8 +110,11 @@ function App() {
   const loadInbox = async () => {
     try {
       const response = await fetch("/api/inbox");
-      const text = await response.text();
-      setInboxJson(text);
+      if (!response.ok) {
+        throw new Error(`Inbox request failed: ${response.status}`);
+      }
+      const data = await response.json();
+      setMessages(data.messages || []);
     } catch (error) {
       console.error("Error fetching inbox:", error);
     }
@@ -122,7 +126,19 @@ function App() {
 
       <a href="/auth/google">Connect Gmail</a>
       <button onClick={loadInbox}>Load Inbox</button>
-      <pre>{inboxJson}</pre>
+      <section>
+        {messages.length === 0 ? (
+          <p>No messages loaded yet.</p>
+        ) : (
+          messages.map((message) => (
+            <Message
+              key={message.id}
+              id={message.id}
+              threadId={message.threadId}
+            />
+          ))
+        )}
+      </section>
 
       <button onClick={goFullscreen}>
         Full Screen
