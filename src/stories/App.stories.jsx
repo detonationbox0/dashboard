@@ -9,7 +9,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Dashboard proof of concept. Shows gamepad connection state, recent inputs, and device info. Includes controller-selectable boxes, a Connect Gmail link, inbox loading, message previews, and a fullscreen toggle.',
+          'Dashboard proof of concept. Shows gamepad connection state, recent inputs, and device info. Includes controller-selectable message boxes, inbox loading, and a fullscreen toggle.',
       },
     },
   },

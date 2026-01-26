@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import Message from './Message.jsx'
 import MessageBox from './MessageBox.jsx'
 
 function getDeviceInfo() {
@@ -38,6 +37,7 @@ function App() {
   const [inboxError, setInboxError] = useState("");
   const [isInboxLoading, setIsInboxLoading] = useState(false);
   const [selectedBoxIndex, setSelectedBoxIndex] = useState(0);
+  const messagesCountRef = useRef(0);
 
   const prevButtons = useRef([]);
   const prevAxes = useRef([]);
@@ -49,7 +49,10 @@ function App() {
 
 
 
-  const boxCount = 4;
+  useEffect(() => {
+    messagesCountRef.current = messages.length;
+    setSelectedBoxIndex((prev) => Math.min(prev, Math.max(messages.length - 1, 0)));
+  }, [messages.length]);
 
   useEffect(() => {
 
@@ -85,9 +88,11 @@ function App() {
           const isPressed = btn.pressed;
 
           if (!wasPressed && isPressed) {
+            console.log(`Gamepad button pressed: ${index}`);
             setCommand(`Button ${index}`);
             if (index === 15) {
-              setSelectedBoxIndex((prev) => Math.min(prev + 1, boxCount - 1));
+              const maxIndex = Math.max(messagesCountRef.current - 1, 0);
+              setSelectedBoxIndex((prev) => Math.min(prev + 1, maxIndex));
             }
             if (index === 14) {
               setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
@@ -148,15 +153,6 @@ function App() {
       <button onClick={loadInbox}>Load Inbox</button>
       {isInboxLoading ? <p>Loading inbox...</p> : null}
       {inboxError ? <p>Error: {inboxError}</p> : null}
-      <section>
-        {Array.from({ length: boxCount }).map((_, index) => (
-          <MessageBox
-            key={`box-${index}`}
-            label={index + 1}
-            selected={index === selectedBoxIndex}
-          />
-        ))}
-      </section>
       <details>
         <summary>Messages</summary>
         <section>
@@ -164,10 +160,11 @@ function App() {
             <p>No messages loaded yet.</p>
           ) : (
             messages.map((message) => (
-              <Message
+              <MessageBox
                 key={message.id}
                 id={message.id}
                 threadId={message.threadId}
+                selected={message.id === messages[selectedBoxIndex]?.id}
               />
             ))
           )}

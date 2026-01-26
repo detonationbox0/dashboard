@@ -1,20 +1,19 @@
-function MessageBox({ label, selected = false }) {
+import MessageDetails from "./MessageDetails.jsx";
+
+function MessageBox({ id, threadId, selected = false }) {
   const styles = {
-    width: "50px",
-    height: "50px",
     padding: "10px",
-    backgroundColor: "#c9c9c9",
+    backgroundColor: "#e6e6e6",
     boxShadow: selected ? "0 0 0 3px #333" : "none",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
     boxSizing: "border-box",
-    marginRight: "10px",
+    marginBottom: "10px",
   };
 
   return (
     <div style={styles} aria-selected={selected}>
-      {label}
+      <p><strong>ID:</strong> {id}</p>
+      <p><strong>Thread:</strong> {threadId}</p>
+      <MessageDetails threadId={threadId} />
     </div>
   );
 }
