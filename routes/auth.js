@@ -92,6 +92,7 @@ export default function createAuthRouter({ pool }) {
     });
 
     router.get("/me", async (req, res, next) => {
+        // #region Return current session user profile
         const userId = req.session.userId;
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
@@ -105,6 +106,7 @@ export default function createAuthRouter({ pool }) {
         } catch (err) {
             next(err);
         }
+        // #endregion
     });
 
     return router;
