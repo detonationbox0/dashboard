@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "devStart": "nodemon server.js",
+    "devStart": "npm run build && nodemon server.js",
     "docker:build": "docker build -t dashboard:latest .",
     "docker:run": "docker run --rm -p 8080:8080 --env-file .env dashboard:latest",
     "fly:deploy": "fly deploy",
