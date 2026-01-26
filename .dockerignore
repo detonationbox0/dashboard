@@ -1,1 +1,11 @@
 fly.toml
+.git
+.github
+.storybook
+dist
+docs
+node_modules
+npm-debug.log
+yarn-error.log
+*.log
+.env

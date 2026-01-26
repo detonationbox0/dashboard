@@ -10,9 +10,14 @@
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "devStart": "nodemon server.js"
+    "devStart": "nodemon server.js",
+    "docker:build": "docker build -t dashboard:latest .",
+    "docker:run": "docker run --rm -p 8080:8080 --env-file .env dashboard:latest",
+    "fly:deploy": "fly deploy",
+    "deploy:all": "npm run docker:build && npm run fly:deploy"
   },
   "dependencies": {
+    "connect-pg-simple": "^10.0.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-session": "^1.19.0",

@@ -1,5 +1,6 @@
 import express from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { google } from "googleapis";
 import dotenv from "dotenv";
 import pg from "pg";
@@ -7,22 +8,34 @@ import path from "path";
 import { fileURLToPath } from "url";
 import createAuthRouter from "./routes/auth.js";
 
-const app = express();
-
-// Create session middleware
-app.use(session({
-    secret: process.env.SESSION_SECRET || "dev_secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false }
-}))
-
 // Load environment variables
 dotenv.config();
+
+const app = express();
 
 // Postgress
 const { Pool } = pg;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+const PgSession = connectPgSimple(session);
+const isProd = process.env.NODE_ENV === "production";
+
+app.set("trust proxy", 1);
+app.use(session({
+    store: new PgSession({
+        pool,
+        tableName: "session",
+        createTableIfMissing: false
+    }),
+    secret: process.env.SESSION_SECRET || "dev_secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: isProd,
+        sameSite: "lax",
+        maxAge: 1000 * 60 * 60 * 24 * 30
+    }
+}));
 
 // Create static file paths
 const __filename = fileURLToPath(import.meta.url);

@@ -1,0 +1,38 @@
+meta {
+  name: /auth/me
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:8080/auth/me
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+}
+
+docs {
+  ## GET /auth/me
+  
+  Returns the currently authenticated user based on the session cookie.
+  
+  **Behavior**
+  - Response: `200 OK` with `{ user: { id, email } }` when logged in
+  - Response: `401 Unauthorized` when no session exists
+  - Response: `404 Not Found` if the session user no longer exists
+  
+  **Notes**
+  - Requires a valid session cookie from the Google OAuth flow.
+  - Use this to verify session persistence after redeploys.
+  
+  **Example**
+  ```http
+  GET http://localhost:8080/auth/me
+  ```
+}

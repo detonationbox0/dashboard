@@ -91,6 +91,22 @@ export default function createAuthRouter({ pool }) {
         // #endregion
     });
 
+    router.get("/me", async (req, res, next) => {
+        const userId = req.session.userId;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+        try {
+            const { rows } = await pool.query(
+                "select id, email from users where id = $1",
+                [userId]
+            );
+            if (!rows.length) return res.status(404).json({ error: "User not found" });
+            res.json({ user: rows[0] });
+        } catch (err) {
+            next(err);
+        }
+    });
+
     return router;
     // #endregion
 }
