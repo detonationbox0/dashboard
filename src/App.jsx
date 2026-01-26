@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Message from './Message.jsx'
+import MessageBox from './MessageBox.jsx'
 
 function getDeviceInfo() {
   const ua = navigator.userAgent;
@@ -34,6 +35,9 @@ function App() {
   const [command, setCommand] = useState(null);
   const [deviceInfo] = useState(() => getDeviceInfo());
   const [messages, setMessages] = useState([]);
+  const [inboxError, setInboxError] = useState("");
+  const [isInboxLoading, setIsInboxLoading] = useState(false);
+  const [selectedBoxIndex, setSelectedBoxIndex] = useState(0);
 
   const prevButtons = useRef([]);
   const prevAxes = useRef([]);
@@ -44,6 +48,8 @@ function App() {
   };
 
 
+
+  const boxCount = 4;
 
   useEffect(() => {
 
@@ -80,6 +86,12 @@ function App() {
 
           if (!wasPressed && isPressed) {
             setCommand(`Button ${index}`);
+            if (index === 15) {
+              setSelectedBoxIndex((prev) => Math.min(prev + 1, boxCount - 1));
+            }
+            if (index === 14) {
+              setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
+            }
           }
 
           prevButtons.current[index] = isPressed;
@@ -108,15 +120,23 @@ function App() {
 
 
   const loadInbox = async () => {
+    setIsInboxLoading(true);
+    setInboxError("");
     try {
       const response = await fetch("/api/inbox");
       if (!response.ok) {
-        throw new Error(`Inbox request failed: ${response.status}`);
+        const text = await response.text();
+        throw new Error(text || `Inbox request failed: ${response.status}`);
       }
       const data = await response.json();
-      setMessages(data.messages || []);
+      const nextMessages = data.messages || data.data?.messages || [];
+      setMessages(nextMessages);
     } catch (error) {
       console.error("Error fetching inbox:", error);
+      setInboxError(error.message || "Failed to load inbox");
+      setMessages([]);
+    } finally {
+      setIsInboxLoading(false);
     }
   }
 
@@ -126,19 +146,33 @@ function App() {
 
       <a href="/auth/google">Connect Gmail</a>
       <button onClick={loadInbox}>Load Inbox</button>
+      {isInboxLoading ? <p>Loading inbox...</p> : null}
+      {inboxError ? <p>Error: {inboxError}</p> : null}
       <section>
-        {messages.length === 0 ? (
-          <p>No messages loaded yet.</p>
-        ) : (
-          messages.map((message) => (
-            <Message
-              key={message.id}
-              id={message.id}
-              threadId={message.threadId}
-            />
-          ))
-        )}
+        {Array.from({ length: boxCount }).map((_, index) => (
+          <MessageBox
+            key={`box-${index}`}
+            label={index + 1}
+            selected={index === selectedBoxIndex}
+          />
+        ))}
       </section>
+      <details>
+        <summary>Messages</summary>
+        <section>
+          {messages.length === 0 ? (
+            <p>No messages loaded yet.</p>
+          ) : (
+            messages.map((message) => (
+              <Message
+                key={message.id}
+                id={message.id}
+                threadId={message.threadId}
+              />
+            ))
+          )}
+        </section>
+      </details>
 
       <button onClick={goFullscreen}>
         Full Screen
