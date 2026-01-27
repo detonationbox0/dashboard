@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import LoginScreen from './LoginScreen.jsx'
+import Button from './components/Button.jsx'
 import MessageBox from './MessageBox.jsx'
 import { applyTheme, defaultThemeName, themeNames, themes } from './theme/theme.js'
 
@@ -34,6 +36,8 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [command, setCommand] = useState(null);
   const [deviceInfo] = useState(() => getDeviceInfo());
+  const [authStatus, setAuthStatus] = useState("loading");
+  const [authError, setAuthError] = useState("");
   const [messages, setMessages] = useState([]);
   const [inboxError, setInboxError] = useState("");
   const [isInboxLoading, setIsInboxLoading] = useState(false);
@@ -60,9 +64,52 @@ function App() {
     setThemeName(themeOptions[nextIndex]);
   };
 
+  const logout = async () => {
+    try {
+      await fetch("/auth/logout", { method: "POST", credentials: "include" });
+    } catch (error) {
+      console.error("Error logging out:", error);
+    } finally {
+      setMessages([]);
+      setInboxError("");
+      setAuthStatus("unauthenticated");
+    }
+  };
+
   useEffect(() => {
     applyTheme(themeName);
   }, [themeName]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const checkAuth = async () => {
+      setAuthStatus("loading");
+      setAuthError("");
+      try {
+        const response = await fetch("/auth/me", { credentials: "include" });
+        if (response.status === 401) {
+          if (isActive) setAuthStatus("unauthenticated");
+          return;
+        }
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || `Auth request failed: ${response.status}`);
+        }
+        if (isActive) setAuthStatus("authenticated");
+      } catch (error) {
+        if (!isActive) return;
+        setAuthError(error.message || "Failed to check authentication");
+        setAuthStatus("unauthenticated");
+      }
+    };
+
+    checkAuth();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
 
   useEffect(() => {
@@ -172,37 +219,55 @@ function App() {
     }
   }
 
+  if (authStatus === "loading") {
+    return (
+      <>
+        <h1>Dashboard Proof of Concept</h1>
+        <p>Checking authentication...</p>
+      </>
+    );
+  }
+
+  if (authStatus === "unauthenticated") {
+    return (
+      <>
+        <h1>Dashboard Proof of Concept</h1>
+        <LoginScreen
+          error={authError}
+          onConnect={() => window.location.assign("/auth/google")}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <h1>Dashboard Proof of Concept</h1>
 
-      <a href="/auth/google">Connect Gmail</a>
-      <button onClick={toggleTheme}>Toggle Theme</button>
+      <Button onClick={toggleTheme}>Toggle Theme</Button>
       <p>Theme: <b>{themeLabel}</b></p>
-      <button onClick={loadInbox}>Load Inbox</button>
+      <Button onClick={logout}>Sign out</Button>
+      <Button onClick={loadInbox}>Load Inbox</Button>
       {isInboxLoading ? <p>Loading inbox...</p> : null}
       {inboxError ? <p>Error: {inboxError}</p> : null}
-      <details>
-        <summary>Messages</summary>
-        <section>
-          {messages.length === 0 ? (
-            <p>No messages loaded yet.</p>
-          ) : (
-            messages.map((message) => (
-              <MessageBox
-                key={message.id}
-                id={message.id}
-                threadId={message.threadId}
-                selected={message.id === messages[selectedBoxIndex]?.id}
-              />
-            ))
-          )}
-        </section>
-      </details>
+      <section>
+        {messages.length === 0 ? (
+          <p>No messages loaded yet.</p>
+        ) : (
+          messages.map((message) => (
+            <MessageBox
+              key={message.id}
+              id={message.id}
+              threadId={message.threadId}
+              selected={message.id === messages[selectedBoxIndex]?.id}
+            />
+          ))
+        )}
+      </section>
 
-      <button onClick={goFullscreen}>
+      <Button onClick={goFullscreen}>
         Full Screen
-      </button>
+      </Button>
 
       <p>The controller is: <b>{isConnected ? "Connected" : "Not Connected"}</b></p>
       <p>Current action: <b>{command ? command : "None"}</b></p>

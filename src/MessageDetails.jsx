@@ -35,12 +35,12 @@ function MessageDetails({ threadId, initialSnippet = "", disableFetch = false })
     };
   }, [threadId, disableFetch, initialSnippet]);
 
-  if (isLoading) return <p>Loading latest message...</p>;
-  if (error) return <p>Error: {error}</p>;
-  if (!snippet) return <p>No message preview available.</p>;
+  if (isLoading) return <p className="message-box__status">Loading latest message...</p>;
+  if (error) return <p className="message-box__status">Error: {error}</p>;
+  if (!snippet) return <p className="message-box__status">No message preview available.</p>;
 
   return (
-    <p>{snippet}</p>
+    <p className="message-box__snippet">{snippet}</p>
   );
 }
 

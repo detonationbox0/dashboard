@@ -109,6 +109,16 @@ export default function createAuthRouter({ pool }) {
         // #endregion
     });
 
+    router.post("/logout", (req, res, next) => {
+        // #region Clear session and auth cookie
+        req.session.destroy((err) => {
+            if (err) return next(err);
+            res.clearCookie("connect.sid");
+            res.status(204).end();
+        });
+        // #endregion
+    });
+
     return router;
     // #endregion
 }

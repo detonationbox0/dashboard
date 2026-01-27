@@ -1,0 +1,32 @@
+meta {
+  name: Logout
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: none
+}
+
+auth {
+  type: none
+}
+
+docs {
+  ## POST /auth/logout
+  
+  Clears the current session and removes the session cookie.
+  
+  **Behavior**
+  - Response: `204 No Content` on success
+  - Response: `500 Internal Server Error` if session destruction fails
+  
+  **Notes**
+  - Use this to force re-authentication.
+  
+  **Example**
+  ```http
+  POST http://localhost:8080/auth/logout
+  ```
+}

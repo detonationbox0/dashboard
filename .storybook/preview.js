@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import "../src/styles/theme.css";
 import { applyTheme, defaultThemeName, themeNames, themes } from "../src/theme/theme.js";
 
@@ -20,7 +21,17 @@ const preview = {
   decorators: [
     (Story, context) => {
       applyTheme(context.globals.theme || defaultThemeName);
-      return Story();
+      return createElement(
+        "div",
+        {
+          style: {
+            minHeight: "100vh",
+            background: "var(--app-bg)",
+            color: "var(--app-text)",
+          },
+        },
+        createElement(Story)
+      );
     },
   ],
   parameters: {

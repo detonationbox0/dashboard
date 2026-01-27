@@ -7,7 +7,15 @@
       "vars": {
         "--app-bg": "#0b0e14",
         "--app-text": "#ffffff",
-        "--app-font": "Atkinson Hyperlegible, Segoe UI, Tahoma, sans-serif"
+        "--app-font": "Atkinson Hyperlegible, Segoe UI, Tahoma, sans-serif",
+        "--button-bg": "#232a36",
+        "--button-border": "#232a36",
+        "--button-hover-border": "#4ff2c9",
+        "--button-active-bg": "#11141c",
+        "--panel-bg": "#171b24",
+        "--panel-border": "#2a3342",
+        "--panel-selected-border": "#4ff2c9",
+        "--panel-muted-text": "#b8c2d1"
       }
     },
     "light": {
@@ -16,7 +24,15 @@
       "vars": {
         "--app-bg": "#f7f7f7",
         "--app-text": "#0b0e14",
-        "--app-font": "Atkinson Hyperlegible, Segoe UI, Tahoma, sans-serif"
+        "--app-font": "Atkinson Hyperlegible, Segoe UI, Tahoma, sans-serif",
+        "--button-bg": "#e6ebf2",
+        "--button-border": "#c7d0de",
+        "--button-hover-border": "#1a9b82",
+        "--button-active-bg": "#d5dbe6",
+        "--panel-bg": "#ffffff",
+        "--panel-border": "#cfd6e2",
+        "--panel-selected-border": "#4ff2c9",
+        "--panel-muted-text": "#4b5566"
       }
     }
   }
