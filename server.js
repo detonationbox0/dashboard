@@ -51,9 +51,45 @@ app.get("/api/inbox", async (req, res) => {
     // #region Route to receive all emails
     const userId = req.session.userId;
     if (!userId) return res.status(401).send("Unauthorized");
-    const gmail = await getGmailClientForUser(userId);
-    const list = await gmail.users.messages.list({ userId: "me", maxResults: 10 });
-    res.json(list.data);
+    try {
+        const gmail = await getGmailClientForUser(userId);
+        const list = await gmail.users.messages.list({ userId: "me", maxResults: 10 });
+        const items = list.data.messages || [];
+
+        if (!items.length) {
+            return res.json({ messages: [] });
+        }
+
+        const messages = await Promise.all(
+            items.map(async ({ id, threadId }) => {
+                const response = await gmail.users.messages.get({
+                    userId: "me",
+                    id,
+                    format: "metadata",
+                    metadataHeaders: ["To", "From", "Subject"]
+                });
+                const headers = response.data.payload?.headers || [];
+                const headerMap = headers.reduce((acc, header) => {
+                    if (header?.name) acc[header.name.toLowerCase()] = header.value || "";
+                    return acc;
+                }, {});
+
+                return {
+                    id,
+                    threadId: response.data.threadId || threadId,
+                    to: headerMap.to || "",
+                    from: headerMap.from || "",
+                    subject: headerMap.subject || "",
+                    snippet: response.data.snippet || ""
+                };
+            })
+        );
+
+        res.json({ messages });
+    } catch (error) {
+        console.error("Error fetching inbox:", error);
+        res.status(500).send("Failed to load inbox");
+    }
     // #endregion
 });
 

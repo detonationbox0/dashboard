@@ -254,15 +254,16 @@ function App() {
         {messages.length === 0 ? (
           <p>No messages loaded yet.</p>
         ) : (
-          messages.map((message) => (
-            <MessageBox
-              key={message.id}
-              id={message.id}
-              threadId={message.threadId}
-              selected={message.id === messages[selectedBoxIndex]?.id}
-            />
-          ))
-        )}
+            messages.map((message) => (
+              <MessageBox
+                key={message.id}
+                to={message.to}
+                from={message.from}
+                subject={message.subject}
+                selected={message.id === messages[selectedBoxIndex]?.id}
+              />
+            ))
+          )}
       </section>
 
       <Button onClick={goFullscreen}>

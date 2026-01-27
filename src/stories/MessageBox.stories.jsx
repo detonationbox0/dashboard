@@ -17,16 +17,16 @@ export default meta;
 
 export const Selected = {
   args: {
-    id: "187c1aa7e7b1a1f2",
-    threadId: "187c1aa6e0b9d3ab",
+    from: "fromme@hotmail.com, alsofromme@gmail.com",
+    subject: "Hate, Inc.: Why Today's Media Makes Us Despise One Another",
     selected: true,
   },
 };
 
 export const Unselected = {
   args: {
-    id: "187c1aa7e7b1a1f3",
-    threadId: "187c1aa6e0b9d3ac",
+    from: "newsletter@somewhere.com",
+    subject: "Your weekly digest is ready",
     selected: false,
   },
 };
