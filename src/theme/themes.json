@@ -1,0 +1,23 @@
+{
+  "default": "dark",
+  "themes": {
+    "dark": {
+      "name": "Dark",
+      "colorScheme": "dark",
+      "vars": {
+        "--app-bg": "#0b0e14",
+        "--app-text": "#ffffff",
+        "--app-font": "Atkinson Hyperlegible, Segoe UI, Tahoma, sans-serif"
+      }
+    },
+    "light": {
+      "name": "Light",
+      "colorScheme": "light",
+      "vars": {
+        "--app-bg": "#f7f7f7",
+        "--app-text": "#0b0e14",
+        "--app-font": "Atkinson Hyperlegible, Segoe UI, Tahoma, sans-serif"
+      }
+    }
+  }
+}

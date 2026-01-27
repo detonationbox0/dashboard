@@ -1,0 +1,27 @@
+:root {
+  color-scheme: dark;
+  --app-bg: #0b0e14;
+  --app-text: #ffffff;
+  --app-font: "Atkinson Hyperlegible", "Segoe UI", Tahoma, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--app-font);
+}
+
+a {
+  color: inherit;
+}

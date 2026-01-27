@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import MessageBox from './MessageBox.jsx'
+import { applyTheme, defaultThemeName, themeNames, themes } from './theme/theme.js'
 
 function getDeviceInfo() {
   const ua = navigator.userAgent;
@@ -38,17 +39,30 @@ function App() {
   const [isInboxLoading, setIsInboxLoading] = useState(false);
   const [selectedBoxIndex, setSelectedBoxIndex] = useState(0);
   const [diagnostics, setDiagnostics] = useState(null);
+  const [themeName, setThemeName] = useState(defaultThemeName);
   const messagesCountRef = useRef(0);
   const lastDiagUpdateRef = useRef(0);
 
   const prevButtons = useRef([]);
   const prevAxes = useRef([]);
+  const themeLabel = themes[themeName]?.name || themeName;
+  const themeOptions = useMemo(() => themeNames.length ? themeNames : [defaultThemeName], []);
 
   const goFullscreen = () => {
     const elem = document.documentElement;
     if (elem.requestFullscreen) elem.requestFullscreen();
   };
 
+  const toggleTheme = () => {
+    if (!themeOptions.length) return;
+    const currentIndex = themeOptions.indexOf(themeName);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeOptions.length : 0;
+    setThemeName(themeOptions[nextIndex]);
+  };
+
+  useEffect(() => {
+    applyTheme(themeName);
+  }, [themeName]);
 
 
   useEffect(() => {
@@ -163,6 +177,8 @@ function App() {
       <h1>Dashboard Proof of Concept</h1>
 
       <a href="/auth/google">Connect Gmail</a>
+      <button onClick={toggleTheme}>Toggle Theme</button>
+      <p>Theme: <b>{themeLabel}</b></p>
       <button onClick={loadInbox}>Load Inbox</button>
       {isInboxLoading ? <p>Loading inbox...</p> : null}
       {inboxError ? <p>Error: {inboxError}</p> : null}
