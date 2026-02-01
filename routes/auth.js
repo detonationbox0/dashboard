@@ -1,6 +1,7 @@
 import express from "express";
 import { google } from "googleapis";
 
+// OAuth scopes needed for basic profile + Gmail access.
 const SCOPES = [
     "openid",
     "email",
@@ -19,6 +20,7 @@ export default function createAuthRouter({ pool }) {
 
     router.get("/google", (req, res) => {
         // #region Begin Google OAuth authorization redirect
+        // Build an auth URL and send the user to Google consent.
         const url = oauth2Client.generateAuthUrl({
             access_type: "offline",
             prompt: "consent",
@@ -44,7 +46,7 @@ export default function createAuthRouter({ pool }) {
             const googleSub = userInfo.data.id;
             const email = userInfo.data.email;
 
-            // Upsert user + tokens to DB
+            // Upsert user + tokens to DB and attach session to the user id.
             const client = await pool.connect();
             try {
                 const userRes = await client.query(
@@ -113,6 +115,7 @@ export default function createAuthRouter({ pool }) {
         // #region Clear session and auth cookie
         req.session.destroy((err) => {
             if (err) return next(err);
+            // Clear the session cookie in the browser.
             res.clearCookie("connect.sid");
             res.status(204).end();
         });

@@ -2,10 +2,12 @@
 
 /** @type { import('@storybook/react-vite').StorybookConfig } */
 const config = {
+  // Pick up local stories from src.
   "stories": [
     "../src/**/*.mdx",
     "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"
   ],
+  // Common Storybook addons (a11y, docs, onboarding, etc).
   "addons": [
     "@chromatic-com/storybook",
     "@storybook/addon-vitest",

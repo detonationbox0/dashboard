@@ -6,6 +6,7 @@ const meta = {
   parameters: {
     docs: {
       description: {
+        // Storybook summary for the message wrapper.
         component:
           "Basic inbox row that shows a Gmail message id and thread id with a preview section.",
       },

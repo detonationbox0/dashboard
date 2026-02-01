@@ -13,13 +13,14 @@ dotenv.config();
 
 const app = express();
 
-// Postgress
+// Postgres connection pool for app data + session store.
 const { Pool } = pg;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 const PgSession = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production";
 
+// Trust the first proxy so secure cookies work behind a reverse proxy.
 app.set("trust proxy", 1);
 app.use(session({
     store: new PgSession({
@@ -41,10 +42,10 @@ app.use(session({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve the dist folder
+// Serve the built client app.
 app.use(express.static(path.join(__dirname, "dist")));
 
-// Mount the auth router, passing the database pool
+// Mount the auth router, passing the database pool for user lookups.
 app.use("/auth", createAuthRouter({ pool }));
 
 app.get("/api/inbox", async (req, res) => {
@@ -53,6 +54,7 @@ app.get("/api/inbox", async (req, res) => {
     if (!userId) return res.status(401).send("Unauthorized");
     try {
         const gmail = await getGmailClientForUser(userId);
+        // Pull a small page of recent messages and normalize a compact response.
         const list = await gmail.users.messages.list({ userId: "me", maxResults: 10 });
         const items = list.data.messages || [];
 
@@ -124,11 +126,13 @@ app.get("/hello", (req, res) => {
 });
 
 app.get(/.*/, (req, res) => {
+    // SPA fallback for client-side routes.
     res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 async function getGmailClientForUser(userId) {
     // #region Get Gmail Client
+    // Look up refresh token and create a Gmail client on-demand.
     const { rows } = await pool.query(
         'select refresh_token from google_tokens where user_id = $1',
         [userId]

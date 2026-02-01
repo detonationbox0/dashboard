@@ -16,16 +16,21 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+// Provide classic extends() support in flat config.
 const compat = new FlatCompat({
   baseDirectory: __dirname,
 })
 
-export default defineConfig([globalIgnores(['dist']), js.configs.recommended, ...compat.extends(
+export default defineConfig([
+  // Ignore built output.
+  globalIgnores(['dist']),
+  js.configs.recommended,
+  ...compat.extends(
   'plugin:react/recommended',
   'plugin:react-hooks/recommended',
   'plugin:jsx-a11y/recommended',
   'plugin:import/recommended'
-), {
+  ), {
   files: ['**/*.{js,jsx}'],
   languageOptions: {
     ecmaVersion: 2020,
@@ -52,6 +57,7 @@ export default defineConfig([globalIgnores(['dist']), js.configs.recommended, ..
     },
   },
   rules: {
+    // Match the project's preferred React + import style.
     'react/react-in-jsx-scope': 'off',
     'react/jsx-filename-extension': ['warn', { extensions: ['.jsx'] }],
     'import/extensions': [

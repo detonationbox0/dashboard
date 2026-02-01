@@ -6,6 +6,7 @@ const meta = {
   parameters: {
     docs: {
       description: {
+        // Storybook summary for the button component.
         component:
           "Base button component that uses theme variables for background, border, and interaction states.",
       },
@@ -23,6 +24,7 @@ export const Default = {
 
 export const Hover = {
   args: {
+    // State mimics hover styling in CSS.
     children: "Hover",
     state: "hover",
   },
@@ -30,6 +32,7 @@ export const Hover = {
 
 export const Active = {
   args: {
+    // State mimics active styling in CSS.
     children: "Active",
     state: "active",
   },
