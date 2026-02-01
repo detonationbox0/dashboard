@@ -26,7 +26,7 @@ docs {
   
   **Notes**
   - Requires a valid session set by `/auth/google/callback`.
-  - Uses `maxResults: 10` and fetches metadata headers for each message.
+  - Fetches all message ids (batched at 100 per request) and loads metadata headers for each message.
   
   **Example**
   ```http

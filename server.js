@@ -54,9 +54,19 @@ app.get("/api/inbox", async (req, res) => {
     if (!userId) return res.status(401).send("Unauthorized");
     try {
         const gmail = await getGmailClientForUser(userId);
-        // Pull a small page of recent messages and normalize a compact response.
-        const list = await gmail.users.messages.list({ userId: "me", maxResults: 10 });
-        const items = list.data.messages || [];
+        // Pull all recent messages and normalize a compact response.
+        let items = [];
+        let pageToken = undefined;
+
+        do {
+            const list = await gmail.users.messages.list({
+                userId: "me",
+                maxResults: 100,
+                pageToken
+            });
+            items = items.concat(list.data.messages || []);
+            pageToken = list.data.nextPageToken;
+        } while (pageToken);
 
         if (!items.length) {
             return res.json({ messages: [] });
