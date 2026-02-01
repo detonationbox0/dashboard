@@ -32,12 +32,3 @@ export const WithError = {
     isActive: true,
   },
 };
-
-export const PhoneFlow = {
-  args: {
-    message: "Use a phone to complete Google sign-in.",
-    onConnect: () => {},
-    isActive: true,
-    authUrl: "https://example.com/auth/google",
-  },
-};
