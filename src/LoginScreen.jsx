@@ -1,9 +1,10 @@
 import Button from "./components/Button.jsx";
 
-function LoginScreen({ error, onConnect }) {
+function LoginScreen({ message, error, onConnect }) {
   return (
     <section
       style={{
+        // Keep the sign-in CTA visually grouped and left-aligned.
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
@@ -12,6 +13,7 @@ function LoginScreen({ error, onConnect }) {
       }}
     >
       <p>Please connect your Google account to continue.</p>
+      {message ? <p>{message}</p> : null}
       {error ? <p>Error: {error}</p> : null}
       <Button type="button" onClick={onConnect}>
         Connect with Google

@@ -6,6 +6,7 @@ import { applyTheme, defaultThemeName, themeNames, themes } from "../src/theme/t
 const preview = {
   globalTypes: {
     theme: {
+      // Expose theme switching in the Storybook toolbar.
       name: "Theme",
       description: "Global theme for components",
       defaultValue: defaultThemeName,
@@ -20,6 +21,7 @@ const preview = {
   },
   decorators: [
     (Story, context) => {
+      // Apply the selected theme and wrap stories in a themed surface.
       applyTheme(context.globals.theme || defaultThemeName);
       return createElement(
         "div",

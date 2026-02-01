@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import LoginScreen from './LoginScreen.jsx'
 import Button from './components/Button.jsx'
 import MessageBox from './MessageBox.jsx'
+import MessageContent from './components/MessageContent.jsx'
 import { applyTheme, defaultThemeName, themeNames, themes } from './theme/theme.js'
 
+// Lightweight UA parsing for a friendly device label in the UI.
 function getDeviceInfo() {
   const ua = navigator.userAgent;
   const platform = navigator.platform;
@@ -34,22 +36,43 @@ function getDeviceInfo() {
 function App() {
 
   const [isConnected, setIsConnected] = useState(false);
+  // Latest gamepad action label for the UI.
   const [command, setCommand] = useState(null);
+  // Cache device info so it does not change across renders.
   const [deviceInfo] = useState(() => getDeviceInfo());
   const [authStatus, setAuthStatus] = useState("loading");
   const [authError, setAuthError] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [inboxError, setInboxError] = useState("");
   const [isInboxLoading, setIsInboxLoading] = useState(false);
+  // Index of the currently highlighted message in the list.
   const [selectedBoxIndex, setSelectedBoxIndex] = useState(0);
   const [diagnostics, setDiagnostics] = useState(null);
   const [themeName, setThemeName] = useState(defaultThemeName);
+  // When true, the message details panel is open.
+  const [isMessageOpen, setIsMessageOpen] = useState(false);
+  // Which action button is selected in the message panel.
+  const [selectedActionIndex, setSelectedActionIndex] = useState(0);
+  // Which header button is currently highlighted (theme/logout/load).
+  const [selectedHeaderIndex, setSelectedHeaderIndex] = useState(0);
+  // True when navigating header actions instead of the message list.
+  const [isHeaderFocused, setIsHeaderFocused] = useState(true);
+  // Refs keep the latest values accessible inside the gamepad polling loop.
   const messagesCountRef = useRef(0);
   const lastDiagUpdateRef = useRef(0);
+  const isMessageOpenRef = useRef(false);
+  const selectedActionIndexRef = useRef(0);
+  const isHeaderFocusedRef = useRef(true);
+  const selectedHeaderIndexRef = useRef(0);
+  const selectedBoxIndexRef = useRef(0);
+  const themeNameRef = useRef(themeName);
 
+  // Stored gamepad state to detect changes between frames.
   const prevButtons = useRef([]);
   const prevAxes = useRef([]);
   const themeLabel = themes[themeName]?.name || themeName;
+  // Resolve the theme list once; fall back to the default if empty.
   const themeOptions = useMemo(() => themeNames.length ? themeNames : [defaultThemeName], []);
 
   const goFullscreen = () => {
@@ -58,13 +81,15 @@ function App() {
   };
 
   const toggleTheme = () => {
+    // Rotate to the next theme in the list.
     if (!themeOptions.length) return;
-    const currentIndex = themeOptions.indexOf(themeName);
+    const currentIndex = themeOptions.indexOf(themeNameRef.current);
     const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeOptions.length : 0;
     setThemeName(themeOptions[nextIndex]);
   };
 
   const logout = async () => {
+    // Destroy server session and reset local UI state.
     try {
       await fetch("/auth/logout", { method: "POST", credentials: "include" });
     } catch (error) {
@@ -72,6 +97,7 @@ function App() {
     } finally {
       setMessages([]);
       setInboxError("");
+      setAuthMessage("I checked your current situation, and you are not authenticated.");
       setAuthStatus("unauthenticated");
     }
   };
@@ -84,13 +110,22 @@ function App() {
     let isActive = true;
 
     const checkAuth = async () => {
+      // Confirm session state on first load so the UI reflects auth status.
       setAuthStatus("loading");
       setAuthError("");
+      setAuthMessage("");
       try {
         const response = await fetch("/auth/me", { credentials: "include" });
+        const contentType = response.headers.get("content-type") || "";
         if (response.status === 401) {
-          if (isActive) setAuthStatus("unauthenticated");
+          if (isActive) {
+            setAuthMessage("I checked your current situation, and you are not authenticated.");
+            setAuthStatus("unauthenticated");
+          }
           return;
+        }
+        if (!contentType.includes("application/json")) {
+          throw new Error("Auth check returned an unexpected response.");
         }
         if (!response.ok) {
           const text = await response.text();
@@ -100,6 +135,7 @@ function App() {
       } catch (error) {
         if (!isActive) return;
         setAuthError(error.message || "Failed to check authentication");
+        setAuthMessage("I checked your current situation, and you are not authenticated.");
         setAuthStatus("unauthenticated");
       }
     };
@@ -113,9 +149,28 @@ function App() {
 
 
   useEffect(() => {
+    // Keep the selected index valid as the message list changes.
     messagesCountRef.current = messages.length;
     setSelectedBoxIndex((prev) => Math.min(prev, Math.max(messages.length - 1, 0)));
   }, [messages.length]);
+
+  useEffect(() => {
+    // Sync state into refs so the gamepad loop can read current values.
+    isMessageOpenRef.current = isMessageOpen;
+    selectedActionIndexRef.current = selectedActionIndex;
+    isHeaderFocusedRef.current = isHeaderFocused;
+    selectedHeaderIndexRef.current = selectedHeaderIndex;
+  }, [isMessageOpen, selectedActionIndex, isHeaderFocused, selectedHeaderIndex]);
+
+  useEffect(() => {
+    // Keep selected list index in a ref for the polling loop.
+    selectedBoxIndexRef.current = selectedBoxIndex;
+  }, [selectedBoxIndex]);
+
+  useEffect(() => {
+    // Allow theme toggling to read the latest value in handlers.
+    themeNameRef.current = themeName;
+  }, [themeName]);
 
   useEffect(() => {
 
@@ -133,6 +188,7 @@ function App() {
     window.addEventListener("gamepaddisconnected", handleDisconnect);
 
     const poll = () => {
+      // Poll gamepad state and translate buttons/axes into UI actions.
       const pads = navigator.getGamepads();
       const gp = pads && pads[0];
 
@@ -146,6 +202,7 @@ function App() {
           prevAxes.current = [...gp.axes];
         }
 
+        // Throttle diagnostics so the UI doesn't re-render every frame.
         const now = performance.now();
         if (now - lastDiagUpdateRef.current > 200) {
           setDiagnostics({
@@ -162,14 +219,68 @@ function App() {
           const isPressed = btn.pressed;
 
           if (!wasPressed && isPressed) {
+            // Map button presses to UI navigation/actions.
             console.log(`Gamepad button pressed: ${index}`);
             setCommand(`Button ${index}`);
             if (index === 15) {
-              const maxIndex = Math.max(messagesCountRef.current - 1, 0);
-              setSelectedBoxIndex((prev) => Math.min(prev + 1, maxIndex));
+              // Right on d-pad or stick: move selection forward.
+              if (isMessageOpenRef.current) {
+                setSelectedActionIndex((prev) => Math.min(prev + 1, 2));
+              } else if (isHeaderFocusedRef.current && selectedHeaderIndexRef.current >= 1) {
+                setSelectedHeaderIndex(2);
+              }
             }
             if (index === 14) {
-              setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
+              // Left on d-pad or stick: move selection backward.
+              if (isMessageOpenRef.current) {
+                setSelectedActionIndex((prev) => Math.max(prev - 1, 0));
+              } else if (isHeaderFocusedRef.current && selectedHeaderIndexRef.current >= 1) {
+                setSelectedHeaderIndex(1);
+              }
+            }
+            if (index === 13 && !isMessageOpenRef.current) {
+              // Down: move focus from header to list or step through list.
+              if (isHeaderFocusedRef.current) {
+                if (selectedHeaderIndexRef.current === 0) {
+                  setSelectedHeaderIndex(1);
+                } else if (messagesCountRef.current > 0) {
+                  setIsHeaderFocused(false);
+                }
+              } else {
+                const maxIndex = Math.max(messagesCountRef.current - 1, 0);
+                setSelectedBoxIndex((prev) => Math.min(prev + 1, maxIndex));
+              }
+            }
+            if (index === 12 && !isMessageOpenRef.current) {
+              // Up: move focus back to header or step up in list.
+              if (isHeaderFocusedRef.current) {
+                setSelectedHeaderIndex(0);
+              } else if (selectedBoxIndexRef.current === 0) {
+                setIsHeaderFocused(true);
+              } else {
+                setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
+              }
+            }
+            if (index === 0) {
+              // Primary action (e.g. "A" on Xbox) to activate selection.
+              if (isMessageOpenRef.current) {
+                if (selectedActionIndexRef.current === 2) {
+                  setIsMessageOpen(false);
+                }
+              } else if (isHeaderFocusedRef.current) {
+                if (selectedHeaderIndexRef.current === 0) {
+                  toggleTheme();
+                }
+                if (selectedHeaderIndexRef.current === 1) {
+                  logout();
+                }
+                if (selectedHeaderIndexRef.current === 2) {
+                  loadInbox();
+                }
+              } else if (messagesCountRef.current > 0) {
+                setSelectedActionIndex(0);
+                setIsMessageOpen(true);
+              }
             }
           }
 
@@ -180,6 +291,7 @@ function App() {
           const prevValue = prevAxes.current[index];
 
           if (Math.abs(value - prevValue) > 0.2) {
+            // Axis motion is noisy; only update when there is a clear change.
             setCommand(`Axis ${index}: ${value.toFixed(2)}`);
             prevAxes.current[index] = value;
           }
@@ -199,13 +311,25 @@ function App() {
 
 
   const loadInbox = async () => {
+    // Fetch inbox messages; if not authenticated, flip the UI to sign-in.
     setIsInboxLoading(true);
     setInboxError("");
     try {
-      const response = await fetch("/api/inbox");
+      const response = await fetch("/api/inbox", { credentials: "include" });
+      const contentType = response.headers.get("content-type") || "";
+      if (response.status === 401) {
+        setAuthMessage("I checked your current situation, and you are not authenticated.");
+        setAuthStatus("unauthenticated");
+        setMessages([]);
+        return;
+      }
       if (!response.ok) {
         const text = await response.text();
         throw new Error(text || `Inbox request failed: ${response.status}`);
+      }
+      if (!contentType.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(text || "Inbox response was not JSON.");
       }
       const data = await response.json();
       const nextMessages = data.messages || data.data?.messages || [];
@@ -233,6 +357,7 @@ function App() {
       <>
         <h1>Dashboard Proof of Concept</h1>
         <LoginScreen
+          message={authMessage}
           error={authError}
           onConnect={() => window.location.assign("/auth/google")}
         />
@@ -244,13 +369,20 @@ function App() {
     <>
       <h1>Dashboard Proof of Concept</h1>
 
-      <Button onClick={toggleTheme}>Toggle Theme</Button>
+      <Button onClick={toggleTheme} state={isHeaderFocused && selectedHeaderIndex === 0 ? "active" : undefined}>
+        Toggle Theme
+      </Button>
       <p>Theme: <b>{themeLabel}</b></p>
-      <Button onClick={logout}>Sign out</Button>
-      <Button onClick={loadInbox}>Load Inbox</Button>
+      <Button onClick={logout} state={isHeaderFocused && selectedHeaderIndex === 1 ? "active" : undefined}>
+        Sign out
+      </Button>
+      <Button onClick={loadInbox} state={isHeaderFocused && selectedHeaderIndex === 2 ? "active" : undefined}>
+        Load Inbox
+      </Button>
       {isInboxLoading ? <p>Loading inbox...</p> : null}
       {inboxError ? <p>Error: {inboxError}</p> : null}
       <section>
+        {/* Message list with keyboard/gamepad-highlighted selection. */}
         {messages.length === 0 ? (
           <p>No messages loaded yet.</p>
         ) : (
@@ -265,6 +397,12 @@ function App() {
             ))
           )}
       </section>
+      <MessageContent
+        open={isMessageOpen}
+        message={messages[selectedBoxIndex]}
+        selectedActionIndex={selectedActionIndex}
+        onClose={() => setIsMessageOpen(false)}
+      />
 
       <Button onClick={goFullscreen}>
         Full Screen
@@ -274,6 +412,7 @@ function App() {
       <p>Current action: <b>{command ? command : "None"}</b></p>
       <p>Current Device: <b>{deviceInfo}</b></p>
       <details>
+        {/* Optional diagnostics to help calibrate gamepad input. */}
         <summary>Gamepad Diagnostics</summary>
         {diagnostics ? (
           <section>

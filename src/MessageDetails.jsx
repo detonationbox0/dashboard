@@ -6,12 +6,14 @@ function MessageDetails({ threadId, initialSnippet = "", disableFetch = false })
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Allow the parent to opt out of network calls (e.g. Storybook).
     if (!threadId || disableFetch) return;
 
     let isActive = true;
     setIsLoading(true);
     setError("");
 
+    // Fetch the latest thread snippet for display.
     fetch(`/api/threads/${threadId}`)
       .then((response) => {
         if (!response.ok) throw new Error(`Request failed: ${response.status}`);
@@ -40,6 +42,7 @@ function MessageDetails({ threadId, initialSnippet = "", disableFetch = false })
   if (!snippet) return <p className="message-box__status">No message preview available.</p>;
 
   return (
+    // Render the snippet inline under the parent message.
     <p className="message-box__snippet">{snippet}</p>
   );
 }
