@@ -3,7 +3,7 @@ import LoginScreen from './LoginScreen.jsx'
 import Button from './components/Button.jsx'
 import MessageBox from './MessageBox.jsx'
 import MessageContent from './components/MessageContent.jsx'
-import { applyTheme, defaultThemeName } from './theme/theme.js'
+import { applyTheme, defaultThemeName, themeNames } from './theme/theme.js'
 
 function App() {
 
@@ -18,21 +18,94 @@ function App() {
   const [isInboxLoading, setIsInboxLoading] = useState(false);
   // Index of the currently highlighted message in the list.
   const [selectedBoxIndex, setSelectedBoxIndex] = useState(0);
+  const [themeName, setThemeName] = useState(defaultThemeName);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState("");
+  const [fullscreenConfirmOpen, setFullscreenConfirmOpen] = useState(false);
+  const [fullscreenAction, setFullscreenAction] = useState("enter");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selectedSettingIndex, setSelectedSettingIndex] = useState(0);
   // When true, the message details panel is open.
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   // Which action button is selected in the message panel.
   const [selectedActionIndex, setSelectedActionIndex] = useState(0);
-  // Which header button is currently highlighted (logout/load).
+  // Which header button is currently highlighted (logout/load/fullscreen/settings).
   const [selectedHeaderIndex, setSelectedHeaderIndex] = useState(0);
-  // True when navigating header actions instead of the message list.
-  const [isHeaderFocused, setIsHeaderFocused] = useState(true);
+  // Which area is currently focused for controller navigation.
+  const [focusZone, setFocusZone] = useState("header");
   // Refs keep the latest values accessible inside the gamepad polling loop.
   const messagesCountRef = useRef(0);
   const isMessageOpenRef = useRef(false);
   const selectedActionIndexRef = useRef(0);
-  const isHeaderFocusedRef = useRef(true);
+  const focusZoneRef = useRef("header");
   const selectedHeaderIndexRef = useRef(0);
   const selectedBoxIndexRef = useRef(0);
+  const messageListRef = useRef(null);
+  const fullscreenPendingRef = useRef(false);
+  const authStatusRef = useRef(authStatus);
+  const logoutButtonRef = useRef(null);
+  const loadInboxButtonRef = useRef(null);
+  const fullscreenButtonRef = useRef(null);
+  const settingsButtonRef = useRef(null);
+  const themeToggleButtonRef = useRef(null);
+  const fullscreenCancelButtonRef = useRef(null);
+  const connectButtonRef = useRef(null);
+  const repeatTimersRef = useRef({
+    up: { startedAt: 0, last: 0 },
+    down: { startedAt: 0, last: 0 },
+  });
+  const themeOptions = themeNames.length ? themeNames : [defaultThemeName];
+  const settingsItems = ["Toggle Theme"];
+
+  const toggleTheme = () => {
+    // Rotate to the next theme in the list.
+    setThemeName((prev) => {
+      const currentIndex = themeOptions.indexOf(prev);
+      const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeOptions.length : 0;
+      return themeOptions[nextIndex];
+    });
+  };
+
+  const toggleFullscreen = async () => {
+    if (fullscreenPendingRef.current) return;
+    const action = document.fullscreenElement ? "exit" : "enter";
+    setFullscreenAction(action);
+    if (navigator.userActivation && !navigator.userActivation.isActive) {
+      setFullscreenError(
+        action === "exit"
+          ? "To Exit full screen, the browser requires you to press Enter."
+          : "To Enter full screen, the browser requires you to press Enter."
+      );
+      setFullscreenConfirmOpen(true);
+      return;
+    }
+    fullscreenPendingRef.current = true;
+    setFullscreenError("");
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen?.();
+      } else {
+        await document.documentElement.requestFullscreen?.();
+      }
+    } catch (error) {
+      console.error("Fullscreen toggle failed:", error);
+      setFullscreenError("Fullscreen was blocked by the browser.");
+    } finally {
+      fullscreenPendingRef.current = false;
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+  };
+
+  const toggleSettings = () => {
+    setIsSettingsOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        setFocusZone("settings");
+        setSelectedSettingIndex(0);
+      }
+      return next;
+    });
+  };
 
   // Stored gamepad state to detect changes between frames.
   const prevButtons = useRef([]);
@@ -53,8 +126,34 @@ function App() {
   };
 
   useEffect(() => {
-    applyTheme(defaultThemeName);
+    applyTheme(themeName);
+  }, [themeName]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    handleFullscreenChange();
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!fullscreenConfirmOpen) return;
+    const handleKey = (event) => {
+      if (event.key === "Enter") {
+        toggleFullscreen();
+        setFullscreenConfirmOpen(false);
+      }
+      if (event.key === "Escape") {
+        setFullscreenConfirmOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [fullscreenConfirmOpen]);
 
   useEffect(() => {
     let isActive = true;
@@ -108,14 +207,33 @@ function App() {
     // Sync state into refs so the gamepad loop can read current values.
     isMessageOpenRef.current = isMessageOpen;
     selectedActionIndexRef.current = selectedActionIndex;
-    isHeaderFocusedRef.current = isHeaderFocused;
     selectedHeaderIndexRef.current = selectedHeaderIndex;
-  }, [isMessageOpen, selectedActionIndex, isHeaderFocused, selectedHeaderIndex]);
+    focusZoneRef.current = focusZone;
+    authStatusRef.current = authStatus;
+  }, [isMessageOpen, selectedActionIndex, selectedHeaderIndex, focusZone, authStatus]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+    const shouldKeep =
+      focusZone === "settings" ||
+      (focusZone === "header" && selectedHeaderIndex === 3);
+    if (!shouldKeep) {
+      setIsSettingsOpen(false);
+    }
+  }, [isSettingsOpen, focusZone, selectedHeaderIndex]);
 
   useEffect(() => {
     // Keep selected list index in a ref for the polling loop.
     selectedBoxIndexRef.current = selectedBoxIndex;
   }, [selectedBoxIndex]);
+
+  useEffect(() => {
+    if (focusZone !== "list" || !messageListRef.current) return;
+    const selected = messageListRef.current.querySelector('[data-selected="true"]');
+    if (selected) {
+      selected.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }, [selectedBoxIndex, focusZone, messages.length]);
 
   useEffect(() => {
 
@@ -159,25 +277,31 @@ function App() {
               // Right on d-pad or stick: move selection forward.
               if (isMessageOpenRef.current) {
                 setSelectedActionIndex((prev) => Math.min(prev + 1, 2));
-              } else if (isHeaderFocusedRef.current) {
-                setSelectedHeaderIndex(1);
+              } else if (focusZoneRef.current === "header") {
+                setSelectedHeaderIndex((prev) => Math.min(prev + 1, 3));
               }
             }
             if (index === 14) {
               // Left on d-pad or stick: move selection backward.
               if (isMessageOpenRef.current) {
                 setSelectedActionIndex((prev) => Math.max(prev - 1, 0));
-              } else if (isHeaderFocusedRef.current) {
-                setSelectedHeaderIndex(0);
+              } else if (focusZoneRef.current === "settings") {
+                setIsSettingsOpen(false);
+                setFocusZone("header");
+                setSelectedHeaderIndex(3);
+              } else if (focusZoneRef.current === "header") {
+                setSelectedHeaderIndex((prev) => Math.max(prev - 1, 0));
               }
             }
             if (index === 13 && !isMessageOpenRef.current) {
               // Down: move focus from header to list or step through list.
-              if (isHeaderFocusedRef.current) {
-                if (selectedHeaderIndexRef.current === 1 && messagesCountRef.current > 0) {
-                  setIsHeaderFocused(false);
-                } else {
-                  setSelectedHeaderIndex(1);
+              if (focusZoneRef.current === "settings") {
+                setSelectedSettingIndex((prev) => Math.min(prev + 1, settingsItems.length - 1));
+              } else if (focusZoneRef.current === "header") {
+                if (selectedHeaderIndexRef.current === 3 && isSettingsOpen) {
+                  setFocusZone("settings");
+                } else if (messagesCountRef.current > 0) {
+                  setFocusZone("list");
                 }
               } else {
                 const maxIndex = Math.max(messagesCountRef.current - 1, 0);
@@ -186,30 +310,63 @@ function App() {
             }
             if (index === 12 && !isMessageOpenRef.current) {
               // Up: move focus back to header or step up in list.
-              if (isHeaderFocusedRef.current) {
+              if (focusZoneRef.current === "settings") {
+                if (selectedSettingIndex === 0) {
+                  setFocusZone("header");
+                  setSelectedHeaderIndex(3);
+                } else {
+                  setSelectedSettingIndex((prev) => Math.max(prev - 1, 0));
+                }
+              } else if (focusZoneRef.current === "header") {
                 setSelectedHeaderIndex(0);
               } else if (selectedBoxIndexRef.current === 0) {
-                setIsHeaderFocused(true);
+                setFocusZone("header");
               } else {
                 setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
               }
             }
             if (index === 0) {
               // Primary action (e.g. "A" on Xbox) to activate selection.
-              if (isMessageOpenRef.current) {
+              if (authStatusRef.current === "unauthenticated") {
+                connectButtonRef.current?.click();
+              } else if (fullscreenConfirmOpen) {
+                setFullscreenConfirmOpen(false);
+              } else if (isMessageOpenRef.current) {
                 if (selectedActionIndexRef.current === 2) {
                   setIsMessageOpen(false);
                 }
-              } else if (isHeaderFocusedRef.current) {
+              } else if (focusZoneRef.current === "settings") {
+                if (selectedSettingIndex === 0) {
+                  themeToggleButtonRef.current?.click();
+                }
+              } else if (focusZoneRef.current === "header") {
                 if (selectedHeaderIndexRef.current === 0) {
-                  logout();
+                  logoutButtonRef.current?.click();
                 }
                 if (selectedHeaderIndexRef.current === 1) {
-                  loadInbox();
+                  loadInboxButtonRef.current?.click();
+                }
+                if (selectedHeaderIndexRef.current === 2) {
+                  fullscreenButtonRef.current?.click();
+                }
+                if (selectedHeaderIndexRef.current === 3) {
+                  settingsButtonRef.current?.click();
                 }
               } else if (messagesCountRef.current > 0) {
                 setSelectedActionIndex(0);
                 setIsMessageOpen(true);
+              }
+            }
+            if (index === 1) {
+              // Secondary action (e.g. "B" on Xbox) to go back/close.
+              if (fullscreenConfirmOpen) {
+                setFullscreenConfirmOpen(false);
+              } else if (isMessageOpenRef.current) {
+                setIsMessageOpen(false);
+              } else if (isSettingsOpen || focusZoneRef.current === "settings") {
+                setIsSettingsOpen(false);
+                setFocusZone("header");
+                setSelectedHeaderIndex(3);
               }
             }
           }
@@ -226,6 +383,41 @@ function App() {
             prevAxes.current[index] = value;
           }
         });
+
+        if (!isMessageOpenRef.current && focusZoneRef.current === "list") {
+          const now = performance.now();
+          const repeatDelay = 250;
+          const repeatInterval = 120;
+          const downPressed = gp.buttons[13]?.pressed;
+          const upPressed = gp.buttons[12]?.pressed;
+
+          const handleRepeat = (direction, pressed, onStep) => {
+            const timer = repeatTimersRef.current[direction];
+            if (!pressed) {
+              timer.startedAt = 0;
+              timer.last = 0;
+              return;
+            }
+            if (!timer.startedAt) {
+              timer.startedAt = now;
+              timer.last = now;
+              return;
+            }
+            const heldFor = now - timer.startedAt;
+            if (heldFor >= repeatDelay && now - timer.last >= repeatInterval) {
+              timer.last = now;
+              onStep();
+            }
+          };
+
+          handleRepeat("down", downPressed, () => {
+            const maxIndex = Math.max(messagesCountRef.current - 1, 0);
+            setSelectedBoxIndex((prev) => Math.min(prev + 1, maxIndex));
+          });
+          handleRepeat("up", upPressed, () => {
+            setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
+          });
+        }
       }
 
       requestAnimationFrame(poll);
@@ -275,63 +467,127 @@ function App() {
 
   if (authStatus === "loading") {
     return (
-      <>
-        <h1>Dashboard Proof of Concept</h1>
+      <div className="auth-shell">
         <p>Checking authentication...</p>
-      </>
+      </div>
     );
   }
 
   if (authStatus === "unauthenticated") {
+    const authFlow = (import.meta.env.VITE_AUTH_FLOW || "dev").toLowerCase();
+    const usePhoneFlow = authFlow !== "dev";
+    const authUrl = `${window.location.origin}/auth/google`;
     return (
-      <>
-        <h1>Dashboard Proof of Concept</h1>
+      <div className="auth-shell">
         <LoginScreen
           message={authMessage}
           error={authError}
           onConnect={() => window.location.assign("/auth/google")}
+          isActive
+          buttonRef={connectButtonRef}
+          authUrl={usePhoneFlow ? authUrl : ""}
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <h1>Dashboard Proof of Concept</h1>
-
-      <Button onClick={logout} state={isHeaderFocused && selectedHeaderIndex === 0 ? "active" : undefined}>
-        Sign out
-      </Button>
-      <Button onClick={loadInbox} state={isHeaderFocused && selectedHeaderIndex === 1 ? "active" : undefined}>
-        Load Inbox
-      </Button>
-      {isInboxLoading ? <p>Loading inbox...</p> : null}
-      {inboxError ? <p>Error: {inboxError}</p> : null}
-      <section>
-        {/* Message list with keyboard/gamepad-highlighted selection. */}
-        {messages.length === 0 ? (
-          <p>No messages loaded yet.</p>
-        ) : (
-            messages.map((message) => (
-              <MessageBox
-                key={message.id}
-                from={message.from}
-                subject={message.subject}
-                selected={message.id === messages[selectedBoxIndex]?.id}
-              />
-            ))
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-actions">
+          <Button
+            ref={logoutButtonRef}
+            onClick={logout}
+            state={focusZone === "header" && selectedHeaderIndex === 0 ? "active" : undefined}
+          >
+            Sign out
+          </Button>
+          <Button
+            ref={loadInboxButtonRef}
+            onClick={loadInbox}
+            state={focusZone === "header" && selectedHeaderIndex === 1 ? "active" : undefined}
+          >
+            Load Inbox
+          </Button>
+          <Button
+            ref={fullscreenButtonRef}
+            onClick={toggleFullscreen}
+            state={focusZone === "header" && selectedHeaderIndex === 2 ? "active" : undefined}
+          >
+            {isFullscreen ? "Exit Full Screen" : "Full Screen"}
+          </Button>
+        </div>
+        <div className="app-settings">
+          <Button
+            ref={settingsButtonRef}
+            onClick={toggleSettings}
+            state={focusZone === "header" && selectedHeaderIndex === 3 ? "active" : undefined}
+          >
+            Settings
+          </Button>
+          {isSettingsOpen ? (
+            <div className="app-settings__panel">
+              <p>Theme: <b>{themeName}</b></p>
+              <Button
+                ref={themeToggleButtonRef}
+                onClick={toggleTheme}
+                state={focusZone === "settings" && selectedSettingIndex === 0 ? "active" : undefined}
+              >
+                Toggle Theme
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </header>
+      <main className="app-main">
+        {isInboxLoading ? <p>Loading inbox...</p> : null}
+        {inboxError ? <p>Error: {inboxError}</p> : null}
+        <section className="message-list" ref={messageListRef}>
+          {/* Message list with keyboard/gamepad-highlighted selection. */}
+          {messages.length === 0 ? (
+            <p>No messages loaded yet.</p>
+          ) : (
+              messages.map((message) => (
+                <MessageBox
+                  key={message.id}
+                  from={message.from}
+                  subject={message.subject}
+                  selected={focusZone === "list" && message.id === messages[selectedBoxIndex]?.id}
+                />
+              ))
           )}
-      </section>
+        </section>
+      </main>
       <MessageContent
         open={isMessageOpen}
         message={messages[selectedBoxIndex]}
         selectedActionIndex={selectedActionIndex}
         onClose={() => setIsMessageOpen(false)}
       />
-
-      <p>The controller is: <b>{isConnected ? "Connected" : "Not Connected"}</b></p>
-      <p>Current action: <b>{command ? command : "None"}</b></p>
-    </>
+      {fullscreenConfirmOpen ? (
+        <div className="fullscreen-confirm">
+          <div className="fullscreen-confirm__panel">
+            <p>
+              {fullscreenAction === "exit"
+                ? "To Exit full screen, the browser requires you to press Enter."
+                : "To Enter full screen, the browser requires you to press Enter."}
+            </p>
+            <div className="fullscreen-confirm__actions">
+              <Button
+                ref={fullscreenCancelButtonRef}
+                onClick={() => setFullscreenConfirmOpen(false)}
+                state="active"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <div className="input-indicator">
+        {fullscreenError ? fullscreenError : (command ? `Input: ${command}` : "Input: None")}
+      </div>
+    </div>
   )
 }
 

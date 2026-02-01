@@ -20,6 +20,7 @@ export const Default = {
   args: {
     error: "",
     onConnect: () => {},
+    isActive: true,
   },
 };
 
@@ -28,5 +29,15 @@ export const WithError = {
     // Showcase a failure message beneath the CTA.
     error: "Failed to check authentication",
     onConnect: () => {},
+    isActive: true,
+  },
+};
+
+export const PhoneFlow = {
+  args: {
+    message: "Use a phone to complete Google sign-in.",
+    onConnect: () => {},
+    isActive: true,
+    authUrl: "https://example.com/auth/google",
   },
 };

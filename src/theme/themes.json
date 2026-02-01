@@ -15,7 +15,9 @@
         "--panel-bg": "#171b24",
         "--panel-border": "#2a3342",
         "--panel-selected-border": "#4ff2c9",
-        "--panel-muted-text": "#b8c2d1"
+        "--panel-muted-text": "#b8c2d1",
+        "--input-indicator-bg": "#0f121a",
+        "--input-indicator-text": "#b8c2d1"
       }
     },
     "light": {
@@ -32,7 +34,9 @@
         "--panel-bg": "#ffffff",
         "--panel-border": "#cfd6e2",
         "--panel-selected-border": "#4ff2c9",
-        "--panel-muted-text": "#4b5566"
+        "--panel-muted-text": "#4b5566",
+        "--input-indicator-bg": "#e9edf5",
+        "--input-indicator-text": "#3b4352"
       }
     }
   }
