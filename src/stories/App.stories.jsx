@@ -10,7 +10,7 @@ const meta = {
       description: {
         // High-level description for Storybook docs.
         component:
-          'Dashboard proof of concept. Checks Google authentication before showing the inbox list. Includes inbox loading, a fullscreen toggle, controller input state, and a diagnostic panel for raw gamepad values.',
+          'Dashboard proof of concept. Checks Google authentication before showing the inbox list. Includes inbox loading, controller input state, and a side-panel view for the selected message.',
       },
     },
   },
@@ -24,7 +24,7 @@ export const Primary = {
       description: {
         // Usage notes shown in Storybook for this example.
         story:
-          'If not authenticated, the app shows a Google connect prompt. When authenticated, use "Load Inbox" to fetch /api/inbox, "Sign out" to clear the session, and "Full Screen" to request fullscreen mode. Expand "Gamepad Diagnostics" to inspect mapping, ID, and raw input values.',
+          'If not authenticated, the app shows a Google connect prompt. When authenticated, use "Load Inbox" to fetch /api/inbox and "Sign out" to clear the session. Use the controller or mouse to open a message in the side panel.',
       },
     },
   },

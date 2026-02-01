@@ -95,36 +95,6 @@ app.get("/api/inbox", async (req, res) => {
     // #endregion
 });
 
-app.get("/api/threads/:threadId", async (req, res, next) => {
-    // #region Route to receive the latest message snippet for a thread
-    const userId = req.session.userId;
-    if (!userId) return res.status(401).send("Unauthorized");
-
-    try {
-        const gmail = await getGmailClientForUser(userId);
-        const thread = await gmail.users.threads.get({
-            userId: "me",
-            id: req.params.threadId
-        });
-        const messages = thread.data.messages || [];
-        if (!messages.length) return res.status(404).send("Thread has no messages");
-
-        const latestMessage = messages[messages.length - 1];
-        res.json({
-            threadId: thread.data.id,
-            messageId: latestMessage.id,
-            snippet: latestMessage.snippet || ""
-        });
-    } catch (err) {
-        next(err);
-    }
-    // #endregion
-});
-
-app.get("/hello", (req, res) => {
-    res.status(200).send("hello world");
-});
-
 app.get(/.*/, (req, res) => {
     // SPA fallback for client-side routes.
     res.sendFile(path.join(__dirname, "dist", "index.html"));
