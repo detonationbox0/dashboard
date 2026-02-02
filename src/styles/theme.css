@@ -125,23 +125,58 @@ button:disabled,
 }
 
 
-.app-actions {
+.settings-drawer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  justify-content: flex-start;
+  background: rgba(8, 10, 15, 0);
+  transition: background 200ms ease;
+  z-index: 12;
 }
 
-.app-settings {
-  padding: 0;
-  border: 0;
-  background: transparent;
+.settings-drawer.is-open {
+  pointer-events: auto;
+  background: rgba(8, 10, 15, 0.5);
 }
 
-.app-settings__panel {
-  margin-top: 12px;
+.settings-drawer__panel {
+  width: min(320px, 88vw);
+  height: 100%;
+  background: var(--panel-bg);
+  border-right: 2px solid var(--panel-border);
+  box-shadow: 20px 0 40px rgba(0, 0, 0, 0.4);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  transform: translateX(-100%);
+  transition: transform 220ms ease;
+}
+
+.settings-drawer.is-open .settings-drawer__panel {
+  transform: translateX(0);
+}
+
+.settings-drawer__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-drawer__title {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--panel-muted-text);
+}
+
+.settings-drawer__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .app-main {

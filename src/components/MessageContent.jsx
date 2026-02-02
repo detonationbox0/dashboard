@@ -7,7 +7,7 @@ function MessageContent({
   onClose,
 }) {
   // Placeholder actions; the third action is wired to close the panel.
-  const actions = ["1", "2", "3"];
+  const actions = ["Reply To", "Reply All", "Close"];
   const handleActionClick = (index) => {
     if (index === 2 && onClose) onClose();
   };
