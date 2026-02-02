@@ -18,11 +18,33 @@ const preview = {
         })),
       },
     },
+    outlineColor: {
+      name: "Outline",
+      description: "Overrides the selected/outline color used by buttons and panels",
+      defaultValue: "",
+      toolbar: {
+        icon: "paintbrush",
+        items: [
+          { value: "", title: "Theme default" },
+          { value: "#4ff2c9", title: "Green" },
+          { value: "#dc143c", title: "Crimson" },
+        ],
+      },
+    },
   },
   decorators: [
     (Story, context) => {
       // Apply the selected theme and wrap stories in a themed surface.
       applyTheme(context.globals.theme || defaultThemeName);
+      const outlineColor = context.globals.outlineColor;
+      const root = document.documentElement;
+      if (outlineColor) {
+        root.style.setProperty("--button-hover-border", outlineColor);
+        root.style.setProperty("--panel-selected-border", outlineColor);
+      } else {
+        root.style.removeProperty("--button-hover-border");
+        root.style.removeProperty("--panel-selected-border");
+      }
       return createElement(
         "div",
         {

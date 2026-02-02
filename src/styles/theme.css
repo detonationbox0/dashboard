@@ -251,19 +251,6 @@ button:disabled,
   padding-right: 6px;
 }
 
-.input-indicator {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--input-indicator-bg);
-  border: 1px solid var(--panel-border);
-  color: var(--input-indicator-text);
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
-}
-
 .floating-settings {
   position: fixed;
   left: 18px;

@@ -7,8 +7,6 @@ import { applyTheme, defaultThemeName, themes } from './theme/theme.js'
 
 function App() {
 
-  // Latest gamepad action label for the UI.
-  const [command, setCommand] = useState(null);
   const [authStatus, setAuthStatus] = useState("loading");
   const [authError, setAuthError] = useState("");
   const [authMessage, setAuthMessage] = useState("");
@@ -119,7 +117,6 @@ function App() {
 
   // Stored gamepad state to detect changes between frames.
   const prevButtons = useRef([]);
-  const prevAxes = useRef([]);
 
   const logout = async () => {
     // Destroy server session and reset local UI state.
@@ -293,9 +290,6 @@ function App() {
         if (prevButtons.current.length === 0) {
           prevButtons.current = gp.buttons.map(b => b.pressed);
         }
-        if (prevAxes.current.length === 0) {
-          prevAxes.current = [...gp.axes];
-        }
 
         if (fullscreenConfirmOpenRef.current) {
           const aPressed = gp.buttons[0]?.pressed;
@@ -317,8 +311,6 @@ function App() {
 
           if (!wasPressed && isPressed) {
             // Map button presses to UI navigation/actions.
-            console.log(`Gamepad button pressed: ${index}`);
-            setCommand(`Button ${index}`);
             if (fullscreenConfirmOpenRef.current) {
               setFullscreenConfirmOpen(false);
               return;
@@ -437,17 +429,6 @@ function App() {
           }
 
           prevButtons.current[index] = isPressed;
-        });
-
-        gp.axes.forEach((value, index) => {
-          const prevValue = prevAxes.current[index];
-
-          if (Math.abs(value - prevValue) > 0.2) {
-            // Axis motion is noisy; only update when there is a clear change.
-            setCommand(`Axis ${index}: ${value.toFixed(2)}`);
-            prevAxes.current[index] = value;
-            hasGamepadInput = true;
-          }
         });
 
         if (hasGamepadInput) {
@@ -813,9 +794,6 @@ function App() {
           </div>
         </div>
       ) : null}
-      <div className="input-indicator">
-        {command ? `Input: ${command}` : "Input: None"}
-      </div>
     </div>
   )
 }
