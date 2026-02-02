@@ -3,14 +3,13 @@ import App from '../App';
 const meta = {
   title: 'App',
   component: App,
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
         // High-level description for Storybook docs.
         component:
-          'Dashboard proof of concept. Checks Google authentication before showing the inbox list. Includes inbox loading, controller input state, and a side-panel view for the selected message.',
+          'Dashboard shell with a primary email pane, secondary/tertiary placeholder panes, and a slide-in message viewer. Includes Google auth checks, inbox loading, controller navigation, and a settings drawer.',
       },
     },
   },
@@ -24,7 +23,7 @@ export const Primary = {
       description: {
         // Usage notes shown in Storybook for this example.
         story:
-          'If not authenticated, the app shows a Google connect prompt. When authenticated, use "Load Inbox" to fetch /api/inbox and "Sign out" to clear the session. Use the controller or mouse to open a message in the side panel.',
+          'If not authenticated, the app shows a Google connect prompt. When authenticated, open Settings (Start button or floating settings button) to load the inbox or sign out. Use the controller, Tab key, or mouse to move focus between panes and open a message in the side panel.',
       },
     },
   },

@@ -8,7 +8,7 @@ const meta = {
       description: {
         // Storybook summary for the message box UI.
         component:
-          "Small selectable box used for controller-driven navigation placeholders.",
+          "Selectable message row used in the inbox list, supporting controller focus plus hover/click selection.",
       },
     },
   },
