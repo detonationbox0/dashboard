@@ -3,7 +3,7 @@ import LoginScreen from './LoginScreen.jsx'
 import Button from './components/Button.jsx'
 import MessageBox from './MessageBox.jsx'
 import MessageContent from './components/MessageContent.jsx'
-import { applyTheme, defaultThemeName } from './theme/theme.js'
+import { applyTheme, defaultThemeName, themes } from './theme/theme.js'
 
 function App() {
 
@@ -20,31 +20,38 @@ function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenConfirmOpen, setFullscreenConfirmOpen] = useState(false);
   const [fullscreenAction, setFullscreenAction] = useState("enter");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [colorMode, setColorMode] = useState(defaultThemeName === "light" ? "light" : "dark");
+  const [accentMode, setAccentMode] = useState("green");
   // When true, the message details panel is open.
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   // Which action button is selected in the message panel.
   const [selectedActionIndex, setSelectedActionIndex] = useState(0);
-  // Which header button is currently highlighted (logout/load/fullscreen).
-  const [selectedHeaderIndex, setSelectedHeaderIndex] = useState(0);
+  // Which settings button is currently highlighted in the drawer.
+  const [selectedSettingsIndex, setSelectedSettingsIndex] = useState(0);
   // Which area is currently focused for controller navigation (header or list).
-  const [focusZone, setFocusZone] = useState("header");
+  const [focusZone, setFocusZone] = useState("list");
   // Refs keep the latest values accessible inside the gamepad polling loop.
   const messagesCountRef = useRef(0);
   const isMessageOpenRef = useRef(false);
   const selectedActionIndexRef = useRef(0);
-  const focusZoneRef = useRef("header");
-  const selectedHeaderIndexRef = useRef(0);
+  const focusZoneRef = useRef("list");
+  const selectedSettingsIndexRef = useRef(0);
   const selectedBoxIndexRef = useRef(0);
   const messageListRef = useRef(null);
   const fullscreenConfirmOpenRef = useRef(false);
   const fullscreenPendingRef = useRef(false);
   const fullscreenConfirmArmedRef = useRef(false);
   const authStatusRef = useRef(authStatus);
+  const isSettingsOpenRef = useRef(false);
   const logoutButtonRef = useRef(null);
   const loadInboxButtonRef = useRef(null);
   const fullscreenButtonRef = useRef(null);
   const fullscreenCancelButtonRef = useRef(null);
   const connectButtonRef = useRef(null);
+  const hasAutoLoadedInboxRef = useRef(false);
+  const lightModeButtonRef = useRef(null);
+  const changeColorButtonRef = useRef(null);
   const repeatTimersRef = useRef({
     up: { startedAt: 0, last: 0 },
     down: { startedAt: 0, last: 0 },
@@ -73,6 +80,14 @@ function App() {
     }
   };
 
+  const toggleSettings = () => {
+    setIsSettingsOpen((prev) => {
+      const next = !prev;
+      setFocusZone(next ? "settings" : "list");
+      return next;
+    });
+  };
+
   // Stored gamepad state to detect changes between frames.
   const prevButtons = useRef([]);
   const prevAxes = useRef([]);
@@ -91,9 +106,30 @@ function App() {
     }
   };
 
+  const applyAccent = (mode, themeName) => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const baseVars = themes[themeName]?.vars || {};
+    const baseButtonHover = baseVars["--button-hover-border"];
+    const basePanelSelected = baseVars["--panel-selected-border"];
+    if (mode === "red") {
+      const crimson = "#dc143c";
+      root.style.setProperty("--button-hover-border", crimson);
+      root.style.setProperty("--panel-selected-border", crimson);
+      return;
+    }
+    if (baseButtonHover) {
+      root.style.setProperty("--button-hover-border", baseButtonHover);
+    }
+    if (basePanelSelected) {
+      root.style.setProperty("--panel-selected-border", basePanelSelected);
+    }
+  };
+
   useEffect(() => {
-    applyTheme(defaultThemeName);
-  }, []);
+    const activeTheme = applyTheme(colorMode);
+    applyAccent(accentMode, activeTheme);
+  }, [colorMode, accentMode]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -162,6 +198,16 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (authStatus !== "authenticated") {
+      hasAutoLoadedInboxRef.current = false;
+      return;
+    }
+    if (!hasAutoLoadedInboxRef.current) {
+      hasAutoLoadedInboxRef.current = true;
+      loadInbox();
+    }
+  }, [authStatus]);
 
   useEffect(() => {
     // Keep the selected index valid as the message list changes.
@@ -173,11 +219,12 @@ function App() {
     // Sync state into refs so the gamepad loop can read current values.
     isMessageOpenRef.current = isMessageOpen;
     selectedActionIndexRef.current = selectedActionIndex;
-    selectedHeaderIndexRef.current = selectedHeaderIndex;
+    selectedSettingsIndexRef.current = selectedSettingsIndex;
     focusZoneRef.current = focusZone;
     authStatusRef.current = authStatus;
     fullscreenConfirmOpenRef.current = fullscreenConfirmOpen;
-  }, [isMessageOpen, selectedActionIndex, selectedHeaderIndex, focusZone, authStatus, fullscreenConfirmOpen]);
+    isSettingsOpenRef.current = isSettingsOpen;
+  }, [isMessageOpen, selectedActionIndex, selectedSettingsIndex, focusZone, authStatus, fullscreenConfirmOpen, isSettingsOpen]);
 
   useEffect(() => {
     if (fullscreenConfirmOpen) {
@@ -257,15 +304,21 @@ function App() {
                 if (selectedActionIndexRef.current === 2) {
                   setIsMessageOpen(false);
                 }
-              } else if (focusZoneRef.current === "header") {
-                if (selectedHeaderIndexRef.current === 0) {
+              } else if (isSettingsOpenRef.current) {
+                if (selectedSettingsIndexRef.current === 0) {
                   logoutButtonRef.current?.click();
                 }
-                if (selectedHeaderIndexRef.current === 1) {
+                if (selectedSettingsIndexRef.current === 1) {
                   loadInboxButtonRef.current?.click();
                 }
-                if (selectedHeaderIndexRef.current === 2) {
+                if (selectedSettingsIndexRef.current === 2) {
                   fullscreenButtonRef.current?.click();
+                }
+                if (selectedSettingsIndexRef.current === 3) {
+                  lightModeButtonRef.current?.click();
+                }
+                if (selectedSettingsIndexRef.current === 4) {
+                  changeColorButtonRef.current?.click();
                 }
               } else if (messagesCountRef.current > 0) {
                 setSelectedActionIndex(0);
@@ -279,7 +332,13 @@ function App() {
                 fullscreenCancelButtonRef.current?.click();
               } else if (isMessageOpenRef.current) {
                 setIsMessageOpen(false);
+              } else if (isSettingsOpenRef.current) {
+                toggleSettings();
               }
+            }
+            if (index === 9) {
+              // Start button toggles the settings drawer.
+              toggleSettings();
             }
             if (fullscreenConfirmOpenRef.current) {
               return;
@@ -288,38 +347,32 @@ function App() {
               // Right on d-pad or stick: move selection forward.
               if (isMessageOpenRef.current) {
                 setSelectedActionIndex((prev) => Math.min(prev + 1, 2));
-              } else if (focusZoneRef.current === "header") {
-                setSelectedHeaderIndex((prev) => Math.min(prev + 1, 2));
+              } else if (isSettingsOpenRef.current) {
+                setSelectedSettingsIndex((prev) => Math.min(prev + 1, 4));
               }
             }
             if (index === 14) {
               // Left on d-pad or stick: move selection backward.
               if (isMessageOpenRef.current) {
                 setSelectedActionIndex((prev) => Math.max(prev - 1, 0));
-              } else if (focusZoneRef.current === "header") {
-                setSelectedHeaderIndex((prev) => Math.max(prev - 1, 0));
+              } else if (isSettingsOpenRef.current) {
+                setSelectedSettingsIndex((prev) => Math.max(prev - 1, 0));
               }
             }
             if (index === 13 && !isMessageOpenRef.current) {
               // Down: move focus from header to list or step through list.
-              if (focusZoneRef.current === "header") {
-                if (messagesCountRef.current > 0) {
-                  setFocusZone("list");
-                }
-              } else {
-                const maxIndex = Math.max(messagesCountRef.current - 1, 0);
-                setSelectedBoxIndex((prev) => Math.min(prev + 1, maxIndex));
+              if (isSettingsOpenRef.current) {
+                return;
               }
+              const maxIndex = Math.max(messagesCountRef.current - 1, 0);
+              setSelectedBoxIndex((prev) => Math.min(prev + 1, maxIndex));
             }
             if (index === 12 && !isMessageOpenRef.current) {
               // Up: move focus back to header or step up in list.
-              if (focusZoneRef.current === "header") {
-                setSelectedHeaderIndex(0);
-              } else if (selectedBoxIndexRef.current === 0) {
-                setFocusZone("header");
-              } else {
-                setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
+              if (isSettingsOpenRef.current) {
+                return;
               }
+              setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
             }
           }
 
@@ -337,6 +390,43 @@ function App() {
         });
 
         if (fullscreenConfirmOpenRef.current) {
+          return;
+        }
+        if (isSettingsOpenRef.current) {
+          const now = performance.now();
+          const repeatDelay = 250;
+          const repeatInterval = 120;
+          const downPressed = gp.buttons[13]?.pressed;
+          const upPressed = gp.buttons[12]?.pressed;
+
+          const handleRepeat = (direction, pressed, onStep) => {
+            const timer = repeatTimersRef.current[direction];
+            if (!pressed) {
+              timer.startedAt = 0;
+              timer.last = 0;
+              return;
+            }
+            if (!timer.startedAt) {
+              timer.startedAt = now;
+              timer.last = now;
+              onStep();
+              return;
+            }
+            const heldFor = now - timer.startedAt;
+            if (heldFor >= repeatDelay && now - timer.last >= repeatInterval) {
+              timer.last = now;
+              onStep();
+            }
+          };
+
+          handleRepeat("down", downPressed, () => {
+            setSelectedSettingsIndex((prev) => Math.min(prev + 1, 4));
+          });
+          handleRepeat("up", upPressed, () => {
+            setSelectedSettingsIndex((prev) => Math.max(prev - 1, 0));
+          });
+
+          requestAnimationFrame(poll);
           return;
         }
         if (!isMessageOpenRef.current && focusZoneRef.current === "list") {
@@ -441,31 +531,51 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div className="app-actions">
-          <Button
-            ref={logoutButtonRef}
-            onClick={logout}
-            state={focusZone === "header" && selectedHeaderIndex === 0 ? "active" : undefined}
-          >
-            Sign out
-          </Button>
-          <Button
-            ref={loadInboxButtonRef}
-            onClick={loadInbox}
-            state={focusZone === "header" && selectedHeaderIndex === 1 ? "active" : undefined}
-          >
-            Load Inbox
-          </Button>
-          <Button
-            ref={fullscreenButtonRef}
-            onClick={toggleFullscreen}
-            state={focusZone === "header" && selectedHeaderIndex === 2 ? "active" : undefined}
-          >
-            {isFullscreen ? "Exit Full Screen" : "Full Screen"}
-          </Button>
+      <header className="app-header" />
+      <aside className={`settings-drawer ${isSettingsOpen ? "is-open" : ""}`}>
+        <div className="settings-drawer__panel">
+          <header className="settings-drawer__header">
+            <p className="settings-drawer__title">Settings</p>
+          </header>
+          <div className="settings-drawer__actions">
+            <Button
+              ref={logoutButtonRef}
+              onClick={logout}
+              state={focusZone === "settings" && selectedSettingsIndex === 0 ? "active" : undefined}
+            >
+              Sign out
+            </Button>
+            <Button
+              ref={loadInboxButtonRef}
+              onClick={loadInbox}
+              state={focusZone === "settings" && selectedSettingsIndex === 1 ? "active" : undefined}
+            >
+              Load Inbox
+            </Button>
+            <Button
+              ref={fullscreenButtonRef}
+              onClick={toggleFullscreen}
+              state={focusZone === "settings" && selectedSettingsIndex === 2 ? "active" : undefined}
+            >
+              {isFullscreen ? "Exit Full Screen" : "Full Screen"}
+            </Button>
+            <Button
+              ref={lightModeButtonRef}
+              onClick={() => setColorMode((prev) => (prev === "dark" ? "light" : "dark"))}
+              state={focusZone === "settings" && selectedSettingsIndex === 3 ? "active" : undefined}
+            >
+              {colorMode === "dark" ? "Light Mode" : "Dark Mode"}
+            </Button>
+            <Button
+              ref={changeColorButtonRef}
+              onClick={() => setAccentMode((prev) => (prev === "green" ? "red" : "green"))}
+              state={focusZone === "settings" && selectedSettingsIndex === 4 ? "active" : undefined}
+            >
+              Change Color
+            </Button>
+          </div>
         </div>
-      </header>
+      </aside>
       <main className="app-main">
         {isInboxLoading ? <p>Loading inbox...</p> : null}
         {inboxError ? <p>Error: {inboxError}</p> : null}
@@ -479,7 +589,7 @@ function App() {
                   key={message.id}
                   from={message.from}
                   subject={message.subject}
-                  selected={focusZone === "list" && message.id === messages[selectedBoxIndex]?.id}
+                  selected={message.id === messages[selectedBoxIndex]?.id && (focusZone === "list" || isSettingsOpen)}
                 />
               ))
           )}
