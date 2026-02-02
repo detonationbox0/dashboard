@@ -13,8 +13,14 @@ function MessageContent({
   };
 
   return (
-    <aside className={`message-content ${open ? "is-open" : ""}`} aria-hidden={!open}>
-      <div className="message-content__panel">
+    <aside
+      className={`message-content ${open ? "is-open" : ""}`}
+      aria-hidden={!open}
+      onClick={(event) => {
+        if (event.target === event.currentTarget && onClose) onClose();
+      }}
+    >
+      <div className="message-content__panel" onClick={(event) => event.stopPropagation()}>
         <header className="message-content__header">
           <p className="message-content__label">From</p>
           <p className="message-content__value">{message?.from || "Unknown sender"}</p>

@@ -179,12 +179,69 @@ button:disabled,
   gap: 12px;
 }
 
-.app-main {
+.dashboard-layout {
   flex: 1;
   min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "primary secondary"
+    "primary tertiary";
+  gap: 16px;
+}
+
+.app-primary,
+.app-main {
+  grid-area: primary;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+}
+
+.app-primary {
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.app-pane__header {
+  margin-bottom: 12px;
+}
+
+.app-pane__title {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--panel-muted-text);
+}
+
+.app-secondary,
+.app-tertiary {
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--panel-muted-text);
+}
+
+.app-pane.is-focused {
+  border-color: var(--panel-selected-border);
+  box-shadow: 0 0 0 1px var(--panel-selected-border);
+}
+
+.app-secondary {
+  grid-area: secondary;
+}
+
+.app-tertiary {
+  grid-area: tertiary;
 }
 
 .message-list {
@@ -205,6 +262,40 @@ button:disabled,
   color: var(--input-indicator-text);
   font-size: 0.75rem;
   letter-spacing: 0.02em;
+}
+
+.floating-settings {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
+  color: var(--app-text);
+  font: inherit;
+  cursor: pointer;
+  z-index: 14;
+}
+
+.floating-settings:hover,
+.floating-settings:focus-visible {
+  border-color: var(--button-hover-border);
+  outline: none;
+}
+
+.floating-settings__icon {
+  font-size: 1.05rem;
+}
+
+.floating-settings__label {
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--panel-muted-text);
 }
 
 .fullscreen-confirm {
@@ -250,7 +341,7 @@ button:disabled,
 }
 
 .message-content__panel {
-  width: min(520px, 92vw);
+  width: min(var(--aux-pane-width, 520px), 92vw);
   height: 100%;
   background: var(--panel-bg);
   border-left: 2px solid var(--panel-border);
@@ -300,4 +391,25 @@ button:disabled,
   gap: 12px;
   justify-content: center;
   margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "primary"
+      "secondary"
+      "tertiary";
+  }
+
+  .message-list {
+    max-height: 50vh;
+  }
 }

@@ -21,6 +21,7 @@ function App() {
   const [fullscreenConfirmOpen, setFullscreenConfirmOpen] = useState(false);
   const [fullscreenAction, setFullscreenAction] = useState("enter");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [lastInputMethod, setLastInputMethod] = useState("gamepad");
   const [colorMode, setColorMode] = useState(defaultThemeName === "light" ? "light" : "dark");
   const [accentMode, setAccentMode] = useState("green");
   // When true, the message details panel is open.
@@ -39,6 +40,9 @@ function App() {
   const selectedSettingsIndexRef = useRef(0);
   const selectedBoxIndexRef = useRef(0);
   const messageListRef = useRef(null);
+  const primaryPaneRef = useRef(null);
+  const secondaryPaneRef = useRef(null);
+  const tertiaryPaneRef = useRef(null);
   const fullscreenConfirmOpenRef = useRef(false);
   const fullscreenPendingRef = useRef(false);
   const fullscreenConfirmArmedRef = useRef(false);
@@ -85,6 +89,31 @@ function App() {
       const next = !prev;
       setFocusZone(next ? "settings" : "list");
       return next;
+    });
+  };
+
+  const getPaneRef = (zone) => {
+    if (zone === "secondary") return secondaryPaneRef.current;
+    if (zone === "tertiary") return tertiaryPaneRef.current;
+    return primaryPaneRef.current;
+  };
+
+  const isCompactLayout = () => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 900px)").matches;
+  };
+
+  const cyclePaneFocus = (direction = 1) => {
+    setFocusZone((prev) => {
+      const order = ["list", "secondary", "tertiary"];
+      const currentIndex = Math.max(order.indexOf(prev), 0);
+      const nextIndex = (currentIndex + direction + order.length) % order.length;
+      const nextZone = order[nextIndex];
+      if (isCompactLayout()) {
+        const node = getPaneRef(nextZone);
+        node?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      return nextZone;
     });
   };
 
@@ -260,6 +289,7 @@ function App() {
 
 
       if (gp) {
+        let hasGamepadInput = gp.buttons.some((btn) => btn.pressed);
         if (prevButtons.current.length === 0) {
           prevButtons.current = gp.buttons.map(b => b.pressed);
         }
@@ -340,6 +370,18 @@ function App() {
               // Start button toggles the settings drawer.
               toggleSettings();
             }
+            if (index === 5) {
+              // Right bumper cycles apps forward.
+              if (!isSettingsOpenRef.current && !isMessageOpenRef.current) {
+                cyclePaneFocus(1);
+              }
+            }
+            if (index === 4) {
+              // Left bumper cycles apps backward.
+              if (!isSettingsOpenRef.current && !isMessageOpenRef.current) {
+                cyclePaneFocus(-1);
+              }
+            }
             if (fullscreenConfirmOpenRef.current) {
               return;
             }
@@ -349,6 +391,8 @@ function App() {
                 setSelectedActionIndex((prev) => Math.min(prev + 1, 2));
               } else if (isSettingsOpenRef.current) {
                 setSelectedSettingsIndex((prev) => Math.min(prev + 1, 4));
+              } else if (focusZoneRef.current === "list") {
+                setFocusZone("secondary");
               }
             }
             if (index === 14) {
@@ -357,11 +401,20 @@ function App() {
                 setSelectedActionIndex((prev) => Math.max(prev - 1, 0));
               } else if (isSettingsOpenRef.current) {
                 setSelectedSettingsIndex((prev) => Math.max(prev - 1, 0));
+              } else if (focusZoneRef.current === "secondary" || focusZoneRef.current === "tertiary") {
+                setFocusZone("list");
               }
             }
             if (index === 13 && !isMessageOpenRef.current) {
               // Down: move focus from header to list or step through list.
               if (isSettingsOpenRef.current) {
+                return;
+              }
+              if (focusZoneRef.current === "secondary") {
+                setFocusZone("tertiary");
+                return;
+              }
+              if (focusZoneRef.current === "tertiary") {
                 return;
               }
               const maxIndex = Math.max(messagesCountRef.current - 1, 0);
@@ -370,6 +423,13 @@ function App() {
             if (index === 12 && !isMessageOpenRef.current) {
               // Up: move focus back to header or step up in list.
               if (isSettingsOpenRef.current) {
+                return;
+              }
+              if (focusZoneRef.current === "tertiary") {
+                setFocusZone("secondary");
+                return;
+              }
+              if (focusZoneRef.current === "secondary") {
                 return;
               }
               setSelectedBoxIndex((prev) => Math.max(prev - 1, 0));
@@ -386,8 +446,13 @@ function App() {
             // Axis motion is noisy; only update when there is a clear change.
             setCommand(`Axis ${index}: ${value.toFixed(2)}`);
             prevAxes.current[index] = value;
+            hasGamepadInput = true;
           }
         });
+
+        if (hasGamepadInput) {
+          setLastInputMethod("gamepad");
+        }
 
         if (fullscreenConfirmOpenRef.current) {
           return;
@@ -473,6 +538,59 @@ function App() {
     return () => {};
   }, []);
 
+  useEffect(() => {
+    let mouseTimer;
+    const handleMouseMove = () => {
+      setLastInputMethod("mouse");
+      if (mouseTimer) clearTimeout(mouseTimer);
+      mouseTimer = setTimeout(() => setLastInputMethod("gamepad"), 1500);
+    };
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (mouseTimer) clearTimeout(mouseTimer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (authStatus !== "authenticated") return;
+    const target = secondaryPaneRef.current;
+    if (!target) return;
+    const updateWidth = () => {
+      const width = target.getBoundingClientRect().width;
+      if (width) {
+        document.documentElement.style.setProperty("--aux-pane-width", `${Math.round(width)}px`);
+      }
+    };
+    updateWidth();
+    let observer;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(updateWidth);
+      observer.observe(target);
+    } else {
+      window.addEventListener("resize", updateWidth);
+    }
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      } else {
+        window.removeEventListener("resize", updateWidth);
+      }
+    };
+  }, [authStatus]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== "Tab") return;
+      if (isSettingsOpenRef.current || isMessageOpenRef.current) return;
+      event.preventDefault();
+      cyclePaneFocus(1);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
 
   const loadInbox = async () => {
     // Fetch inbox messages; if not authenticated, flip the UI to sign-in.
@@ -532,8 +650,18 @@ function App() {
   return (
     <div className="app-shell">
       <header className="app-header" />
-      <aside className={`settings-drawer ${isSettingsOpen ? "is-open" : ""}`}>
-        <div className="settings-drawer__panel">
+      <aside
+        className={`settings-drawer ${isSettingsOpen ? "is-open" : ""}`}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) {
+            toggleSettings();
+          }
+        }}
+      >
+        <div
+          className="settings-drawer__panel"
+          onClick={(event) => event.stopPropagation()}
+        >
           <header className="settings-drawer__header">
             <p className="settings-drawer__title">Settings</p>
           </header>
@@ -542,6 +670,10 @@ function App() {
               ref={logoutButtonRef}
               onClick={logout}
               state={focusZone === "settings" && selectedSettingsIndex === 0 ? "active" : undefined}
+              onMouseEnter={() => {
+                setFocusZone("settings");
+                setSelectedSettingsIndex(0);
+              }}
             >
               Sign out
             </Button>
@@ -549,6 +681,10 @@ function App() {
               ref={loadInboxButtonRef}
               onClick={loadInbox}
               state={focusZone === "settings" && selectedSettingsIndex === 1 ? "active" : undefined}
+              onMouseEnter={() => {
+                setFocusZone("settings");
+                setSelectedSettingsIndex(1);
+              }}
             >
               Load Inbox
             </Button>
@@ -556,6 +692,10 @@ function App() {
               ref={fullscreenButtonRef}
               onClick={toggleFullscreen}
               state={focusZone === "settings" && selectedSettingsIndex === 2 ? "active" : undefined}
+              onMouseEnter={() => {
+                setFocusZone("settings");
+                setSelectedSettingsIndex(2);
+              }}
             >
               {isFullscreen ? "Exit Full Screen" : "Full Screen"}
             </Button>
@@ -563,6 +703,10 @@ function App() {
               ref={lightModeButtonRef}
               onClick={() => setColorMode((prev) => (prev === "dark" ? "light" : "dark"))}
               state={focusZone === "settings" && selectedSettingsIndex === 3 ? "active" : undefined}
+              onMouseEnter={() => {
+                setFocusZone("settings");
+                setSelectedSettingsIndex(3);
+              }}
             >
               {colorMode === "dark" ? "Light Mode" : "Dark Mode"}
             </Button>
@@ -570,37 +714,85 @@ function App() {
               ref={changeColorButtonRef}
               onClick={() => setAccentMode((prev) => (prev === "green" ? "red" : "green"))}
               state={focusZone === "settings" && selectedSettingsIndex === 4 ? "active" : undefined}
+              onMouseEnter={() => {
+                setFocusZone("settings");
+                setSelectedSettingsIndex(4);
+              }}
             >
               Change Color
             </Button>
           </div>
         </div>
       </aside>
-      <main className="app-main">
-        {isInboxLoading ? <p>Loading inbox...</p> : null}
-        {inboxError ? <p>Error: {inboxError}</p> : null}
-        <section className="message-list" ref={messageListRef}>
-          {/* Message list with keyboard/gamepad-highlighted selection. */}
-          {messages.length === 0 ? (
-            <p>No messages loaded yet.</p>
-          ) : (
-              messages.map((message) => (
-                <MessageBox
-                  key={message.id}
-                  from={message.from}
-                  subject={message.subject}
-                  selected={message.id === messages[selectedBoxIndex]?.id && (focusZone === "list" || isSettingsOpen)}
-                />
-              ))
-          )}
+      <section className="dashboard-layout">
+        <section
+          className={`app-primary app-pane ${focusZone === "list" ? "is-focused" : ""}`}
+          ref={primaryPaneRef}
+        >
+          <header className="app-pane__header">
+            <p className="app-pane__title">Email</p>
+          </header>
+          <main className="app-main">
+            {isInboxLoading ? <p>Loading inbox...</p> : null}
+            {inboxError ? <p>Error: {inboxError}</p> : null}
+            <section className="message-list" ref={messageListRef}>
+              {/* Message list with keyboard/gamepad-highlighted selection. */}
+              {messages.length === 0 ? (
+                <p>No messages loaded yet.</p>
+              ) : (
+                  messages.map((message) => (
+                    <MessageBox
+                      key={message.id}
+                      from={message.from}
+                      subject={message.subject}
+                      selected={message.id === messages[selectedBoxIndex]?.id && (focusZone === "list" || isSettingsOpen)}
+                      onMouseEnter={() => {
+                        setFocusZone("list");
+                        setSelectedBoxIndex(messages.findIndex((item) => item.id === message.id));
+                      }}
+                      onClick={() => {
+                        setFocusZone("list");
+                        setSelectedBoxIndex(messages.findIndex((item) => item.id === message.id));
+                        setSelectedActionIndex(0);
+                        setIsMessageOpen(true);
+                      }}
+                    />
+                  ))
+              )}
+            </section>
+          </main>
         </section>
-      </main>
+        <section
+          className={`app-secondary app-pane ${focusZone === "secondary" ? "is-focused" : ""}`}
+          ref={secondaryPaneRef}
+        >
+          <header className="app-pane__header">
+            <p className="app-pane__title">Coming soon</p>
+          </header>
+          <p>App coming soon</p>
+        </section>
+        <section
+          className={`app-tertiary app-pane ${focusZone === "tertiary" ? "is-focused" : ""}`}
+          ref={tertiaryPaneRef}
+        >
+          <header className="app-pane__header">
+            <p className="app-pane__title">Coming soon</p>
+          </header>
+          <p>App coming soon</p>
+        </section>
+      </section>
       <MessageContent
         open={isMessageOpen}
         message={messages[selectedBoxIndex]}
         selectedActionIndex={selectedActionIndex}
         onClose={() => setIsMessageOpen(false)}
       />
+      {lastInputMethod === "mouse" ? (
+        <button className="floating-settings" type="button" onClick={toggleSettings}>
+          <span className="floating-settings__icon" aria-hidden="true">⚙️</span>
+          <span className="floating-settings__label">Settings</span>
+        </button>
+      ) : null}
       {fullscreenConfirmOpen ? (
         <div className="fullscreen-confirm">
           <div className="fullscreen-confirm__panel">
