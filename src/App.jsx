@@ -520,16 +520,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    let mouseTimer;
     const handleMouseMove = () => {
       setLastInputMethod("mouse");
-      if (mouseTimer) clearTimeout(mouseTimer);
-      mouseTimer = setTimeout(() => setLastInputMethod("gamepad"), 1500);
     };
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      if (mouseTimer) clearTimeout(mouseTimer);
     };
   }, []);
 
